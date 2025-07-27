@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+
+[project]
+name = "crypto-hunter"
+description = "Bot de trading crypto com RSI"
+version = "1.0.0"
+requires-python = ">=3.11"
+
+# Ruff - Modern Python linter
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I"]
+ignore = ["E501"]
+
+
+
+# Pytest
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"
+asyncio_mode = "auto"
+
+ 

@@ -1,0 +1,62 @@
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - 8000:8000
+    depends_on:
+      - db
+      - redis
+      - celery_worker
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - crypto_network
+
+  db:
+    image: postgres:17.1
+    env_file:
+      - .env
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    command: ["postgres", "-c", "log_statement=all"]
+    networks:
+      - crypto_network
+  
+  celery_worker:
+    build:
+      context: .
+    container_name: celery_worker
+    command: celery -A core.celery_app worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+    env_file:
+      - .env
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+    restart: unless-stopped
+    networks:
+      - crypto_network
+
+  redis:
+    image: redis:8.0
+    container_name: redis
+    ports:
+      - "6399:6379"
+    restart: unless-stopped
+    networks:
+      - crypto_network 
+
+volumes:
+  pgdata:
+
+networks:
+  crypto_network:
+    driver: bridge 
