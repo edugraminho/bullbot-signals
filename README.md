@@ -1,16 +1,17 @@
-# Crypto Hunter - Bot de Trading com RSI
+# Crypto Hunter 🤖
 
 Bot automatizado para trading de criptomoedas baseado no indicador RSI (Relative Strength Index), com suporte a múltiplas exchanges e sistema de notificações.
 
-## 🚀 Características
+## 🚀 Funcionalidades Implementadas
 
-- **Múltiplas Exchanges**: Suporte a Binance, Bybit, Gate.io e outras
-- **Indicadores Técnicos**: Cálculo automático de RSI e outros indicadores
-- **Sistema de Sinais**: Geração inteligente de sinais de compra/venda
-- **Notificações**: Integração com Discord, Telegram e outros
-- **Trading Automático**: Execução automática de trades baseada em sinais
-- **Monitoramento**: Dashboards em tempo real com Grafana
-- **Escalabilidade**: Arquitetura modular e escalável
+### ✅ Etapa 1: Coleta de Dados e Indicadores
+
+- **✅ Gestão de Exchanges**: Adapter para Gate.io implementado
+- **✅ Coleta de Dados**: Sistema de coleta automática de OHLCV
+- **✅ Mapeamento de Símbolos**: Descoberta automática de criptomoedas disponíveis
+- **✅ Cálculo de RSI**: Múltiplos períodos (14, 21, 50) e timeframes
+- **✅ Geração de Sinais**: Detecção de sobrecompra/sobrevenda
+- **✅ Sistema de Configuração**: Arquivos YAML para configuração flexível
 
 ## 🏗️ Arquitetura
 
@@ -18,177 +19,284 @@ Bot automatizado para trading de criptomoedas baseado no indicador RSI (Relative
 crypto-hunter/
 ├── core/                    # Lógica de negócio
 │   ├── exchanges/          # Adaptadores de exchanges
+│   │   ├── base.py        # Interface comum
+│   │   ├── gateio.py      # Adapter da Gate.io
+│   │   └── factory.py     # Factory para exchanges
 │   ├── indicators/         # Cálculo de indicadores
-│   ├── signals/           # Geração de sinais
-│   └── trading/           # Execução de trades
-├── data/                   # Camada de dados
-├── services/              # Serviços externos
-├── config/                # Configurações
-└── monitoring/            # Monitoramento
+│   │   ├── base.py        # Interface de indicadores
+│   │   └── rsi.py         # Calculador de RSI
+│   └── data_collector.py  # Serviço de coleta
+├── config/                 # Configurações
+│   └── exchanges.yaml     # Configuração de exchanges
+├── utils/                  # Utilitários
+│   └── config_loader.py   # Carregador de configurações
+└── scripts/               # Scripts de execução
+    ├── test_gateio_collection.py  # Teste da Gate.io
+    └── main_collector.py          # Sistema principal
 ```
 
-## 🛠️ Tecnologias
-
-- **Backend**: Python 3.11+, FastAPI, SQLAlchemy
-- **Banco de Dados**: PostgreSQL, Redis
-- **Processamento**: Celery, Redis
-- **Monitoramento**: Prometheus, Grafana
-- **Qualidade**: Ruff, Black, MyPy
-- **Containerização**: Docker, Docker Compose
-
-## 📋 Pré-requisitos
-
-- Docker e Docker Compose
-- Python 3.11+
-- Git
-
-## 🚀 Instalação
+## 🛠️ Instalação
 
 ### 1. Clone o repositório
-
 ```bash
-git clone https://github.com/seu-usuario/crypto-hunter.git
+git clone <repository-url>
 cd crypto-hunter
 ```
 
-### 2. Configure as variáveis de ambiente
-
+### 2. Instale as dependências
 ```bash
-cp .env.example .env
-# Edite o arquivo .env com suas configurações
-```
-
-### 3. Execute com Docker Compose
-
-```bash
-# Construir e iniciar todos os serviços
-docker compose up -d
-
-# Verificar status dos serviços
-docker compose ps
-
-# Ver logs
-docker compose logs -f app
-```
-
-### 4. Acesse os serviços
-
-- **Aplicação**: http://localhost:8000
-- **Flower**: http://localhost:5555
-
-## 🔧 Configuração
-
-### Exchanges
-
-Configure suas APIs de exchanges no arquivo `config/exchanges.yml`:
-
-```yaml
-binance:
-  api_key: "sua_api_key"
-  api_secret: "seu_api_secret"
-  testnet: false
-
-bybit:
-  api_key: "sua_api_key"
-  api_secret: "seu_api_secret"
-  testnet: false
-```
-
-### Símbolos e Parâmetros
-
-Configure os símbolos e parâmetros RSI no arquivo `config/symbols.yml`:
-
-```yaml
-BTCUSDT:
-  rsi_period: 14
-  overbought_level: 70
-  oversold_level: 30
-  position_size: 0.1
-  max_loss_per_trade: 0.02
-```
-
-## 📊 Monitoramento
-
-### Flower (Celery Monitoring)
-
-Acesse http://localhost:5555 para monitorar:
-- Tarefas em execução
-- Workers ativos
-- Filas de processamento
-- Performance das tarefas
-
-## 🧪 Desenvolvimento
-
-### Ambiente Local
-
-```bash
-# Instalar dependências
 pip install -r requirements.txt
+```
 
-# Executar testes
-pytest
+### 3. Configure o ambiente
+```bash
+# Copie o arquivo de exemplo de variáveis de ambiente
+cp env.example .env
 
-# Verificar qualidade do código
-ruff check .
-ruff format .
+# Edite o arquivo .env com suas credenciais da Gate.io
+# Obtenha suas credenciais em: https://www.gate.com/docs/developers/apiv4/en/#generate-api-key
+```
 
-# Verificar tipos
-mypy .
+## 🚀 Como Usar
+
+### Teste Rápido da Gate.io
+
+Para testar a conexão e coleta de dados da Gate.io:
+
+```bash
+# Teste de integração (requer credenciais)
+python tests/integration/test_gateio_connection.py
+
+# Testes unitários (não requer credenciais)
+pytest tests/unit/test_gateio_adapter.py
+
+# Exemplo de uso
+python scripts/example_gateio_usage.py
+```
+
+Os testes irão:
+- ✅ Testar a conexão com a Gate.io
+- 📊 Descobrir símbolos disponíveis
+- 📈 Coletar dados OHLCV
+- 🧮 Calcular RSI para múltiplos períodos
+- 🔍 Identificar símbolos em sobrecompra/sobrevenda
+
+### Sistema Principal
+
+Para executar o sistema completo de monitoramento:
+
+```bash
+python scripts/main_collector.py
+```
+
+O sistema irá:
+- 🔧 Carregar configurações
+- 🔍 Descobrir símbolos automaticamente
+- 📊 Coletar dados continuamente
+- 📈 Calcular RSI em tempo real
+- 🔥 Identificar oportunidades de trading
+
+## 🧪 Testes
+
+### Executando Testes
+
+```bash
+# Testes unitários (não requerem credenciais)
+pytest tests/unit/
+
+# Testes de integração (requerem credenciais da API)
+python tests/integration/test_gateio_connection.py
+
+# Todos os testes
+pytest tests/
 ```
 
 ### Estrutura de Testes
 
-```bash
-# Testes unitários
-pytest tests/unit/
-
-# Testes de integração
-pytest tests/integration/
-
-# Cobertura de código
-pytest --cov=core --cov=data --cov=services
+```
+tests/
+├── unit/                    # Testes unitários
+│   ├── test_gateio_adapter.py
+│   └── test_rsi_calculator.py
+└── integration/            # Testes de integração
+    └── test_gateio_connection.py
 ```
 
-## 📈 Uso
+## 📋 Configuração
 
-### 1. Configurar Exchanges
+### Variáveis de Ambiente
 
-1. Crie contas nas exchanges desejadas
-2. Gere API keys com permissões de leitura e trading
-3. Configure as credenciais no arquivo de configuração
+Copie o arquivo de exemplo e configure suas credenciais:
 
-### 2. Configurar Símbolos
+```bash
+cp env.example .env
+```
 
-1. Escolha os pares de trading
-2. Configure os parâmetros RSI
-3. Defina limites de risco
+Edite o arquivo `.env` com suas credenciais da Gate.io.
 
-### 3. Iniciar Trading
+### Arquivo de Configuração (`config/exchanges.yaml`)
 
-1. Verifique as configurações
-2. Inicie o sistema: `docker compose up -d`
-3. Monitore através dos dashboards
+```yaml
+# Gate.io
+gateio:
+  name: "gateio"
+  api_key: null  # Configure se necessário
+  api_secret: null
+  rate_limit: 100
+  timeframes:
+    - "1m"
+    - "5m"
+    - "15m"
+    - "1h"
+    - "4h"
+    - "1d"
 
-### 4. Monitorar Performance
+# Configurações globais
+global:
+  collection_interval: 60  # segundos
+  max_data_points: 1000
+  rsi_periods: [14, 21, 50]
+  overbought_level: 70
+  oversold_level: 30
+  timeframes: ["1h", "4h", "1d"]
+```
 
-1. Acesse o Flower (http://localhost:5555)
-2. Verifique as tarefas em execução
-3. Monitore os logs da aplicação
-4. Ajuste parâmetros conforme necessário
+### Variáveis de Ambiente (Opcional)
 
-## 🔒 Segurança
+```bash
+# Banco de dados
+export DB_HOST=localhost
+export DB_PORT=5432
+export DB_NAME=crypto_hunter
+export DB_USER=postgres
+export DB_PASSWORD=your_password
 
-- **API Keys**: Nunca commite credenciais no repositório
-- **Ambiente**: Use variáveis de ambiente para configurações sensíveis
-- **Testnet**: Sempre teste primeiro em ambiente de testes
-- **Backup**: Faça backup regular dos dados
+# Redis
+export REDIS_HOST=localhost
+export REDIS_PORT=6379
+export REDIS_PASSWORD=your_password
+```
 
-## 📝 Logs
+## 📊 Exemplos de Uso
 
-Os logs são salvos em:
-- **Aplicação**: `logs/app.log`
-- **Celery**: `logs/celery.log`
-- **Docker**: `docker compose logs [service]`
+### 1. Descoberta de Símbolos
+
+```python
+from core.exchanges import ExchangeManager
+
+# Configura Gate.io
+exchange_manager = ExchangeManager()
+exchange_manager.add_exchange("gateio", {
+    "api_key": None,
+    "api_secret": None,
+    "rate_limit": 100
+})
+
+# Descobre símbolos
+symbols = await exchange_manager.get_all_symbols()
+print(f"Encontrados {len(symbols['gateio'])} símbolos na Gate.io")
+```
+
+### 2. Cálculo de RSI
+
+```python
+from core.indicators import RSICalculator
+
+# Configura RSI
+rsi_calc = RSICalculator({
+    "period": 14,
+    "overbought_level": 70,
+    "oversold_level": 30
+})
+
+# Calcula RSI
+results = rsi_calc.calculate(ohlcv_data)
+latest_signal = rsi_calc.get_latest_signal(ohlcv_data)
+```
+
+### 3. Coleta Contínua de Dados
+
+```python
+from core.data_collector import DataCollector, DataCollectionConfig
+
+# Configura coletor
+config = DataCollectionConfig(
+    symbols=["BTC_USDT", "ETH_USDT"],
+    timeframes=["1h", "4h"],
+    rsi_periods=[14, 21],
+    collection_interval=60
+)
+
+collector = DataCollector(exchange_manager)
+collector.configure(config)
+
+# Inicia coleta
+await collector.start_collection()
+```
+
+## 🚀 Como Usar
+
+### Teste da Gate.io
+
+```bash
+# Testa conexão e busca símbolos
+python scripts/test_gateio_collection.py
+```
+
+### Sistema Principal
+
+```bash
+# Executa coleta de dados e cálculo de RSI
+python scripts/main_collector.py
+```
+
+### Execução de Testes
+
+```bash
+# Executa todos os testes
+python scripts/run_tests.py
+
+# Via Docker
+./scripts/run_tests_docker.sh
+```
+
+## 🔍 Monitoramento
+
+### Logs
+
+Os logs são salvos em `logs/crypto_hunter.log` e também exibidos no console:
+
+```
+2025-01-XX 10:30:00 - INFO - Iniciando Crypto Hunter...
+2025-01-XX 10:30:01 - INFO - Configurações carregadas com sucesso
+2025-01-XX 10:30:02 - INFO - Gate.io configurada
+2025-01-XX 10:30:03 - INFO - gateio: 1500 símbolos encontrados
+2025-01-XX 10:30:04 - INFO - gateio - Símbolos em sobrecompra:
+2025-01-XX 10:30:04 - INFO -   BTC_USDT (1h): RSI=75.23
+```
+
+### Sinais Detectados
+
+O sistema identifica automaticamente:
+
+- **Sobrecompra**: RSI > 70 (configurável)
+- **Sobrevenda**: RSI < 30 (configurável)
+- **Tendência de Alta**: RSI < 50
+- **Tendência de Baixa**: RSI > 50
+
+## 🎯 Próximos Passos
+
+### Etapa 2: Sistema de Notificações
+- [ ] Integração com Discord
+- [ ] Integração com Telegram
+- [ ] Templates de mensagens
+- [ ] Filtros de notificação
+
+### Etapa 3: Sistema de Trading
+- [ ] Execução automática de trades
+- [ ] Gestão de portfólio
+- [ ] Controle de risco
+- [ ] Backtesting
 
 ## 🤝 Contribuição
 
@@ -200,18 +308,12 @@ Os logs são salvos em:
 
 ## 📄 Licença
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalhes.
 
 ## ⚠️ Disclaimer
 
-Este software é fornecido "como está" sem garantias. Trading de criptomoedas envolve riscos significativos. Use por sua conta e risco.
-
-## 📞 Suporte
-
-- **Issues**: [GitHub Issues](https://github.com/seu-usuario/crypto-hunter/issues)
-- **Documentação**: [Wiki](https://github.com/seu-usuario/crypto-hunter/wiki)
-- **Email**: support@cryptohunter.com
+Este software é fornecido "como está" e não constitui aconselhamento financeiro. Trading de criptomoedas envolve riscos significativos. Use por sua conta e risco.
 
 ---
 
-**Crypto Hunter** - Trading automatizado inteligente 🚀 
+**Desenvolvido com ❤️ para a comunidade crypto** 

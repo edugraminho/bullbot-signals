@@ -1,3 +1,45 @@
----
+# Regras de Qualidade de Código
+
+## Formatação e Estilo
+
+- Use **Ruff** para formatação automática
+- Siga o padrão **Black** (88 caracteres por linha)
+- Use **type hints** em todas as funções e métodos
+- Documente todas as classes e métodos com docstrings em português
+
+## Logging
+
+- **NÃO use ícones/emojis nos logs** - mantenha logs limpos e profissionais
+- Use `logging` padrão do Python
+- Configure níveis apropriados (DEBUG, INFO, WARNING, ERROR)
+- Inclua contexto relevante nas mensagens de log
+
+## Estrutura de Código
+
+- Use **dataclasses** para estruturas de dados simples
+- Prefira **composição** sobre herança
+- Mantenha funções pequenas e focadas (máximo 50 linhas)
+- Use **async/await** para operações I/O
+
+## Tratamento de Erros
+
+- Capture exceções específicas, não `Exception` genérica
+- Use `try/except` apenas onde necessário
+- Log erros com contexto adequado
+- Implemente fallbacks quando apropriado
+
+## Performance
+
+- Use **async/await** para operações de rede
+- Implemente **rate limiting** para APIs externas
+- Cache dados quando apropriado
+- Evite loops desnecessários
+
+## Testes
+
+- Escreva testes unitários para lógica de negócio
+- Use **pytest** como framework de testes
+- Mantenha cobertura de código alta (>80%)
+- Teste casos de erro e edge cases
 alwaysApply: false
 ---

@@ -44,6 +44,7 @@ ruff==0.2.1
 
 # Crypto Trading
 ccxt==4.2.15
+gate-api==6.103.0
 
 # Utilities
 python-dateutil==2.8.2

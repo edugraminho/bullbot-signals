@@ -4,7 +4,7 @@ services:
     volumes:
       - .:/app
     ports:
-      - 8000:8000
+      - 8081:8000
     depends_on:
       - db
       - redis
@@ -21,7 +21,7 @@ services:
       - .env
     restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     command: ["postgres", "-c", "log_statement=all"]
@@ -31,8 +31,7 @@ services:
   celery_worker:
     build:
       context: .
-    container_name: celery_worker
-    command: celery -A core.celery_app worker --loglevel=info
+    command: celery -A core.celery_app worker --loglevel=info --concurrency=2
     volumes:
       - .:/app
     depends_on:
@@ -47,9 +46,8 @@ services:
 
   redis:
     image: redis:8.0
-    container_name: redis
     ports:
-      - "6399:6379"
+      - "6380:6379"
     restart: unless-stopped
     networks:
       - crypto_network 
