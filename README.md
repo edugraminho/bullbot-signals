@@ -284,6 +284,252 @@ O sistema identifica automaticamente:
 - **Tendência de Alta**: RSI < 50
 - **Tendência de Baixa**: RSI > 50
 
+## 🔄 Execução Contínua
+
+O **Crypto Hunter** opera em modo contínuo para fornecer dados e sinais em tempo real. Aqui está como funciona o fluxo de execução:
+
+### Como o Sistema Funciona
+
+O sistema opera como um **relógio inteligente** que nunca para, monitorando constantemente o mercado de criptomoedas. Imagine-o como um **observador atento** que:
+
+1. **Observa** as exchanges continuamente
+2. **Coleta** dados de preços em tempo real
+3. **Analisa** os movimentos do mercado
+4. **Calcula** indicadores técnicos
+5. **Identifica** oportunidades de trading
+6. **Notifica** quando encontra algo interessante
+
+### Arquitetura de Execução
+
+O sistema possui **duas formas** de operar:
+
+#### **Modo Síncrono (FastAPI)**
+- **Funciona como um relógio** que executa tarefas em sequência
+- **Coleta dados** a cada intervalo configurado (ex: 60 segundos)
+- **Processa tudo** de forma ordenada e controlada
+- **Ideal para** sistemas menores ou testes
+
+#### **Modo Assíncrono (Celery)**
+- **Funciona como uma fábrica** com várias linhas de produção
+- **Executa tarefas** em paralelo e independentemente
+- **Agenda trabalhos** para horários específicos
+- **Ideal para** sistemas em produção com alta demanda
+
+### Fluxo Detalhado de Execução
+
+#### **Fase 1: Inicialização (Preparação)**
+Quando o sistema inicia, ele faz uma **preparação completa**:
+
+1. **Conecta** com as exchanges (Gate.io, etc.)
+2. **Configura** o sistema de cache para armazenar dados
+3. **Prepara** os calculadores de indicadores
+4. **Descobre** quais criptomoedas estão disponíveis
+5. **Faz uma coleta inicial** para "aquecer" o sistema
+
+É como **ligar um carro** - você precisa verificar se tudo está funcionando antes de sair.
+
+#### **Fase 2: Loop Principal (Operação Contínua)**
+Depois da inicialização, o sistema entra em um **ciclo infinito** que:
+
+1. **Coleta dados** de todas as exchanges configuradas
+2. **Processa** os dados coletados
+3. **Calcula** indicadores técnicos (RSI, etc.)
+4. **Identifica** sinais de trading
+5. **Armazena** resultados no cache
+6. **Aguarda** o próximo ciclo
+
+É como um **coração batendo** - cada batida representa um ciclo completo de coleta e análise.
+
+### Processo de Coleta de Dados
+
+#### **Passo 1: Descoberta de Símbolos**
+O sistema primeiro **mapeia** o que está disponível:
+
+- **Conecta** com cada exchange
+- **Lista** todas as criptomoedas disponíveis
+- **Filtra** apenas as que atendem aos critérios (volume, liquidez)
+- **Armazena** a lista no cache para não precisar buscar novamente
+
+É como **fazer um inventário** de uma loja - você precisa saber o que tem antes de começar a trabalhar.
+
+#### **Passo 2: Coleta de Dados OHLCV**
+Para cada criptomoeda, o sistema coleta dados de preços:
+
+- **Verifica** se já tem dados recentes no cache
+- **Se tem**: usa os dados do cache (mais rápido)
+- **Se não tem**: busca novos dados da exchange
+- **Armazena** os dados coletados para uso futuro
+
+Os dados OHLCV incluem:
+- **Open**: Preço de abertura
+- **High**: Preço mais alto do período
+- **Low**: Preço mais baixo do período
+- **Close**: Preço de fechamento
+- **Volume**: Quantidade negociada
+
+#### **Passo 3: Cálculo de Indicadores**
+Com os dados coletados, o sistema calcula indicadores técnicos:
+
+- **RSI (14 períodos)**: Para análise de curto prazo
+- **RSI (21 períodos)**: Para análise de médio prazo
+- **RSI (50 períodos)**: Para análise de longo prazo
+
+Cada cálculo gera:
+- **Valor numérico** do indicador
+- **Tipo de sinal** (sobrecompra, sobrevenda, neutro)
+- **Força do sinal** (quão forte é o indicador)
+- **Timestamp** (quando foi calculado)
+
+### Sistema de Cache Inteligente
+
+O sistema usa uma **estratégia de cache inteligente** para otimizar performance:
+
+#### **Como Funciona**
+1. **Primeiro verifica** se já tem os dados no cache
+2. **Se tem e está atualizado**: usa os dados do cache
+3. **Se não tem ou está desatualizado**: busca novos dados
+4. **Armazena** os novos dados no cache para uso futuro
+
+#### **Benefícios**
+- **Reduz requisições** às APIs das exchanges
+- **Aumenta velocidade** de resposta
+- **Diminui custos** de API
+- **Melhora confiabilidade** do sistema
+
+### Controle de Intervalos
+
+#### **Configuração de Tempos**
+O sistema permite configurar **diferentes intervalos**:
+
+- **Coleta de dados**: A cada 60 segundos (configurável)
+- **Cálculo de RSI**: A cada 1 minuto
+- **Verificação de sinais**: A cada 2 minutos
+- **Limpeza de cache**: A cada 1 hora
+
+#### **Loop de Execução**
+O sistema funciona em um **loop contínuo**:
+
+1. **Executa** todas as tarefas programadas
+2. **Aguarda** o tempo configurado
+3. **Repete** o processo infinitamente
+4. **Trata erros** automaticamente se algo falhar
+
+### Tratamento de Erros Robusto
+
+#### **Recuperação Automática**
+O sistema é **resistente a falhas**:
+
+- **Se uma exchange falha**: tenta outras exchanges
+- **Se a API está lenta**: aguarda e tenta novamente
+- **Se o cache falha**: usa dados diretos da exchange
+- **Se o cálculo falha**: registra o erro e continua
+
+#### **Logs Detalhados**
+O sistema registra **tudo que acontece**:
+
+- **Logs de inicialização**: quando o sistema inicia
+- **Status das exchanges**: se estão funcionando
+- **Dados coletados**: quantos símbolos foram processados
+- **Sinais detectados**: quais oportunidades foram encontradas
+- **Erros e exceções**: para debugging e correção
+
+### Paralelismo e Performance
+
+#### **Processamento Simultâneo**
+O sistema processa **múltiplas coisas ao mesmo tempo**:
+
+- **Várias exchanges**: conecta com Gate.io, Binance, etc. simultaneamente
+- **Múltiplos símbolos**: analisa BTC, ETH, SOL ao mesmo tempo
+- **Diferentes timeframes**: processa 1h, 4h, 1d em paralelo
+- **Cálculos independentes**: RSI 14, 21, 50 simultaneamente
+
+#### **Otimizações Inteligentes**
+- **Cache-first**: sempre verifica cache antes de buscar dados
+- **TTL configurável**: dados expiram em tempos diferentes
+- **Rate limiting**: respeita limites das APIs das exchanges
+- **Compressão**: dados são comprimidos para economizar espaço
+
+### Monitoramento em Tempo Real
+
+#### **Health Checks**
+O sistema **monitora sua própria saúde**:
+
+- **Verifica conexões** com exchanges
+- **Testa acesso** ao cache
+- **Valida cálculos** de indicadores
+- **Reporta status** via API REST
+
+#### **Métricas de Performance**
+- **Tempo de resposta** das APIs
+- **Taxa de sucesso** das coletas
+- **Uso de memória** e cache
+- **Número de sinais** detectados
+
+### Configuração Flexível
+
+#### **Intervalos Personalizáveis**
+Você pode configurar **diferentes intervalos**:
+
+- **Coleta de dados**: 30 segundos a 5 minutos
+- **Cálculo de indicadores**: 1 minuto a 10 minutos
+- **Verificação de sinais**: 2 minutos a 15 minutos
+- **Limpeza de cache**: 1 hora a 24 horas
+
+#### **Parâmetros Ajustáveis**
+- **Número de símbolos** para monitorar
+- **Timeframes** de análise (1m, 5m, 15m, 1h, 4h, 1d)
+- **Períodos RSI** (14, 21, 50)
+- **Limites** de sobrecompra/sobrevenda
+
+### Resumo do Fluxo Contínuo
+
+#### **Ciclo Completo de Operação**
+
+1. **🔄 Inicialização**
+   - Conecta com exchanges
+   - Configura cache e indicadores
+   - Descobre símbolos disponíveis
+   - Faz coleta inicial
+
+2. **📊 Coleta de Dados**
+   - Busca dados OHLCV das exchanges
+   - Verifica cache primeiro
+   - Armazena dados coletados
+   - Processa múltiplos símbolos
+
+3. **🧮 Cálculo de Indicadores**
+   - Calcula RSI para diferentes períodos
+   - Identifica sinais de trading
+   - Determina força dos sinais
+   - Armazena resultados
+
+4. **💾 Armazenamento**
+   - Salva dados no cache
+   - Configura TTL apropriado
+   - Organiza por exchange/símbolo/timeframe
+   - Otimiza para consultas rápidas
+
+5. **⏱️ Aguarda Próximo Ciclo**
+   - Espera intervalo configurado
+   - Prepara para próxima execução
+   - Mantém sistema ativo
+
+6. **🛡️ Tratamento de Erros**
+   - Recupera de falhas automaticamente
+   - Registra logs detalhados
+   - Continua operação mesmo com problemas
+
+#### **Características do Sistema**
+
+- **🔄 Contínuo**: Nunca para de operar
+- **⚡ Rápido**: Cache inteligente para performance
+- **🛡️ Robusto**: Recupera de falhas automaticamente
+- **📈 Escalável**: Suporta múltiplas exchanges
+- **⚙️ Configurável**: Intervalos e parâmetros ajustáveis
+- **📊 Monitorado**: Health checks e logs detalhados
+
+O sistema funciona como um **observador atento e inteligente** que nunca dorme, sempre monitorando o mercado de criptomoedas para identificar as melhores oportunidades de trading.
+
 ## 🎯 Próximos Passos
 
 ### Etapa 2: Sistema de Notificações
