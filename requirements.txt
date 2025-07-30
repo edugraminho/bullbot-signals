@@ -24,11 +24,7 @@ httpx==0.26.0
 aiohttp==3.9.3
 
 # Messaging
-discord.py==2.3.2
 python-telegram-bot==20.8
-
-# Logging
-structlog==24.1.0
 
 # Configuration & Environment
 python-dotenv==1.0.1

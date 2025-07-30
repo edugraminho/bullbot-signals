@@ -4,14 +4,13 @@ services:
     volumes:
       - .:/app
     ports:
-      - 8081:8000
+      - 8088:8000
     depends_on:
       - db
       - redis
-      - celery_worker
+      # - celery_worker
     env_file:
       - .env
-    restart: unless-stopped
     networks:
       - crypto_network
 
@@ -19,36 +18,32 @@ services:
     image: postgres:17.1
     env_file:
       - .env
-    restart: unless-stopped
     ports:
-      - "5433:5432"
+      - "5438:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    command: ["postgres", "-c", "log_statement=all"]
     networks:
       - crypto_network
   
-  celery_worker:
-    build:
-      context: .
-    command: celery -A core.celery_app worker --loglevel=info --concurrency=2
-    volumes:
-      - .:/app
-    depends_on:
-      - redis
-    env_file:
-      - .env
-    environment:
-      CELERY_BROKER_URL: redis://redis:6379/0
-    restart: unless-stopped
-    networks:
-      - crypto_network
+  # celery_worker:
+  #   build:
+  #     context: .
+  #   command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2
+  #   volumes:
+  #     - .:/app
+  #   depends_on:
+  #     - redis
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     CELERY_BROKER_URL: redis://redis:6379/0
+  #   networks:
+  #     - crypto_network
 
   redis:
     image: redis:8.0
     ports:
-      - "6380:6379"
-    restart: unless-stopped
+      - "6388:6379"
     networks:
       - crypto_network 
 

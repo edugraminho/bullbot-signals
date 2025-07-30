@@ -16,8 +16,6 @@ target-version = "py311"
 select = ["E", "W", "F", "I"]
 ignore = ["E501"]
 
-
-
 # Pytest
 [tool.pytest.ini_options]
 testpaths = ["tests"]
