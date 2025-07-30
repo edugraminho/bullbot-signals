@@ -41,5 +41,15 @@
 - Use **pytest** como framework de testes
 - Mantenha cobertura de código alta (>80%)
 - Teste casos de erro e edge cases
+
+## Containerização
+
+- **SEMPRE execute comandos Python em containers**, nunca no ambiente local
+- Use `docker-compose exec app` para comandos Python
+- Exemplo correto: `docker-compose exec app python -c "from src.api.main import app; print('✅ Aplicação carregada')"`
+- Exemplo ERRADO: `python -c "from src.api.main import app; print('✅ Aplicação carregada')"`
+- Para testes: `docker-compose exec app pytest`
+- Para linting: `docker-compose exec app ruff check .`
+- Para formatação: `docker-compose exec app ruff format .`
 alwaysApply: false
 ---

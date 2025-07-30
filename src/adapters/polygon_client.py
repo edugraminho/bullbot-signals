@@ -4,9 +4,10 @@ Documentação: https://polygon.io/docs/rest/indices/technical-indicators/relati
 """
 
 import asyncio
-from datetime import datetime, date
+from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict
+
 import httpx
 from pydantic import ValidationError
 
@@ -51,8 +52,10 @@ class PolygonClient:
         symbol: str,
         timestamp: Optional[str] = None,
         timespan: str = "day",
+        multiplier: int = 1,
         window: int = 14,
         series_type: str = "close",
+        adjusted: bool = True,
         limit: int = 50,
     ) -> PolygonRSIResponse:
         """
@@ -62,8 +65,10 @@ class PolygonClient:
             symbol: Símbolo da crypto (ex: X:BTCUSD)
             timestamp: Data específica (YYYY-MM-DD) ou timestamp em ms
             timespan: Tamanho da janela (minute, hour, day, week, month)
+            multiplier: Multiplicador do timespan (ex: 15 para 15min, 4 para 4hr)
             window: Janela para cálculo RSI (padrão 14)
             series_type: Tipo de preço (close, open, high, low)
+            adjusted: Se ajusta para splits/desdobramentos (padrão True)
             limit: Limite de resultados (máx 5000)
         """
         if not self.session:
@@ -79,9 +84,14 @@ class PolygonClient:
             "timespan": timespan,
             "window": window,
             "series_type": series_type,
+            "adjusted": adjusted,
             "limit": limit,
             "apikey": self.api_key,  # Backup auth method
         }
+
+        # Adicionar multiplier apenas se for diferente de 1
+        if multiplier != 1:
+            params["timespan.multiplier"] = multiplier
 
         if timestamp:
             params["timestamp"] = timestamp
@@ -141,12 +151,22 @@ class PolygonClient:
             raise PolygonError(error_msg)
 
     async def get_latest_rsi(
-        self, symbol: str, timespan: str = "day", window: int = 14
+        self,
+        symbol: str,
+        timespan: str = "day",
+        multiplier: int = 1,
+        window: int = 14,
+        adjusted: bool = True,
     ) -> Optional[RSIData]:
         """Busca o RSI mais recente para um símbolo"""
         try:
             response = await self.get_rsi(
-                symbol=symbol, timespan=timespan, window=window, limit=1
+                symbol=symbol,
+                timespan=timespan,
+                multiplier=multiplier,
+                window=window,
+                adjusted=adjusted,
+                limit=1,
             )
 
             if response.values:
@@ -159,7 +179,12 @@ class PolygonClient:
             raise PolygonError(f"Erro ao buscar RSI mais recente: {e}")
 
     async def get_multiple_rsi(
-        self, symbols: List[str], timespan: str = "day", window: int = 14
+        self,
+        symbols: List[str],
+        timespan: str = "day",
+        multiplier: int = 1,
+        window: int = 14,
+        adjusted: bool = True,
     ) -> Dict[str, Optional[RSIData]]:
         """
         Busca RSI para múltiplos símbolos em paralelo
@@ -167,7 +192,7 @@ class PolygonClient:
         """
         tasks = []
         for symbol in symbols:
-            task = self.get_latest_rsi(symbol, timespan, window)
+            task = self.get_latest_rsi(symbol, timespan, multiplier, window, adjusted)
             tasks.append(task)
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -181,17 +206,3 @@ class PolygonClient:
                 response_dict[symbol] = result
 
         return response_dict
-
-
-# Função utilitária para uso simples
-async def get_crypto_rsi(
-    api_key: str, symbol: str, timespan: str = "day", window: int = 14
-) -> Optional[RSIData]:
-    """
-    Função utilitária para buscar RSI de uma crypto rapidamente
-
-    Uso:
-        rsi = await get_crypto_rsi("sua_api_key", "BTCUSD")
-    """
-    async with PolygonClient(api_key) as client:
-        return await client.get_latest_rsi(symbol, timespan, window)

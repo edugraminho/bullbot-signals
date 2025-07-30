@@ -12,6 +12,7 @@ from src.core.models.signals import (
     SignalType,
     SignalStrength,
 )
+from src.utils.config import settings
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -35,7 +36,7 @@ class RSIService:
         self.rsi_levels = RSILevels()
 
     async def get_rsi_from_polygon(
-        self, symbol: str, timespan: str = "day", window: int = 14
+        self, symbol: str, timespan: str = "day", multiplier: int = 1, window: int = 14
     ) -> Optional[RSIData]:
         """
         Busca RSI da Polygon.io
@@ -47,7 +48,7 @@ class RSIService:
         """
         try:
             async with PolygonClient(self.polygon_api_key) as client:
-                rsi_data = await client.get_latest_rsi(symbol, timespan, window)
+                rsi_data = await client.get_latest_rsi(symbol, timespan, multiplier, window, settings.rsi_adjusted)
 
             if rsi_data:
                 logger.info(f"RSI obtido para {symbol}: {rsi_data.value}")
@@ -64,12 +65,12 @@ class RSIService:
             return None
 
     async def get_multiple_rsi(
-        self, symbols: List[str], timespan: str = "day", window: int = 14
+        self, symbols: List[str], timespan: str = "day", multiplier: int = 1, window: int = 14
     ) -> Dict[str, Optional[RSIData]]:
         """Busca RSI para múltiplas cryptos em paralelo"""
         try:
             async with PolygonClient(self.polygon_api_key) as client:
-                results = await client.get_multiple_rsi(symbols, timespan, window)
+                results = await client.get_multiple_rsi(symbols, timespan, multiplier, window, settings.rsi_adjusted)
 
             # Log resultados
             successful = sum(1 for v in results.values() if v is not None)
@@ -150,7 +151,7 @@ class RSIService:
         )
 
     async def get_trading_signals(
-        self, symbols: List[str], timespan: str = "day", window: int = 14
+        self, symbols: List[str], timespan: str = "day", multiplier: int = 1, window: int = 14
     ) -> List[RSIAnalysis]:
         """
         Gera sinais de trading para múltiplas cryptos
@@ -159,7 +160,7 @@ class RSIService:
             Lista de análises RSI com sinais
         """
         # Buscar RSI para todas as cryptos
-        rsi_results = await self.get_multiple_rsi(symbols, timespan, window)
+        rsi_results = await self.get_multiple_rsi(symbols, timespan, multiplier, window)
 
         # Analisar cada RSI e gerar sinais
         analyses = []

@@ -2,83 +2,18 @@
     "openapi": "3.1.0",
     "info": {
         "title": "Crypto Hunter API",
-        "description": "API para coleta de dados e sinais de trading",
+        "description": "API para análise de RSI em criptomoedas usando Polygon.io",
         "version": "1.0.0"
     },
     "paths": {
-        "/": {
+        "/rsi/single/{symbol}": {
             "get": {
-                "summary": "Root",
-                "description": "Endpoint raiz.",
-                "operationId": "root__get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/health": {
-            "get": {
-                "summary": "Health Check",
-                "description": "Verifica saúde da aplicação.",
-                "operationId": "health_check_health_get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/exchanges": {
-            "get": {
-                "summary": "List Exchanges",
-                "description": "Lista exchanges disponíveis.",
-                "operationId": "list_exchanges_exchanges_get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/symbols": {
-            "get": {
-                "summary": "List Symbols",
-                "description": "Lista símbolos disponíveis.",
-                "operationId": "list_symbols_symbols_get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/rsi/{symbol}": {
-            "get": {
-                "summary": "Get Rsi Signals",
-                "description": "Obtém sinais RSI para um símbolo específico.",
-                "operationId": "get_rsi_signals_rsi__symbol__get",
+                "tags": [
+                    "RSI"
+                ],
+                "summary": "Get Rsi",
+                "description": "Busca RSI para uma criptomoeda específica\n\nExemplos de símbolos: BTCUSD, ETHUSD, SOLUSD",
+                "operationId": "get_rsi_rsi_single__symbol__get",
                 "parameters": [
                     {
                         "name": "symbol",
@@ -88,6 +23,42 @@
                             "type": "string",
                             "title": "Symbol"
                         }
+                    },
+                    {
+                        "name": "timespan",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "description": "Timeframe: minute, hour, day",
+                            "default": "day",
+                            "title": "Timespan"
+                        },
+                        "description": "Timeframe: minute, hour, day"
+                    },
+                    {
+                        "name": "multiplier",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)",
+                            "default": 1,
+                            "title": "Multiplier"
+                        },
+                        "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+                    },
+                    {
+                        "name": "window",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "description": "RSI calculation window",
+                            "default": 14,
+                            "title": "Window"
+                        },
+                        "description": "RSI calculation window"
                     }
                 ],
                 "responses": {
@@ -95,7 +66,9 @@
                         "description": "Successful Response",
                         "content": {
                             "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "$ref": "#/components/schemas/RSIResponse"
+                                }
                             }
                         }
                     },
@@ -112,11 +85,200 @@
                 }
             }
         },
-        "/signals": {
+        "/rsi/multiple": {
             "get": {
-                "summary": "Get All Signals",
-                "description": "Obtém todos os sinais RSI.",
-                "operationId": "get_all_signals_signals_get",
+                "tags": [
+                    "RSI"
+                ],
+                "summary": "Get Multiple Rsi",
+                "description": "Busca RSI para múltiplas criptomoedas\n\nExemplo: /rsi/multiple?symbols=BTCUSD,ETHUSD,SOLUSD",
+                "operationId": "get_multiple_rsi_rsi_multiple_get",
+                "parameters": [
+                    {
+                        "name": "symbols",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "description": "Símbolos separados por vírgula (ex: BTCUSD,ETHUSD)",
+                            "title": "Symbols"
+                        },
+                        "description": "Símbolos separados por vírgula (ex: BTCUSD,ETHUSD)"
+                    },
+                    {
+                        "name": "timespan",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "description": "Timeframe: minute, hour, day",
+                            "default": "day",
+                            "title": "Timespan"
+                        },
+                        "description": "Timeframe: minute, hour, day"
+                    },
+                    {
+                        "name": "multiplier",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)",
+                            "default": 1,
+                            "title": "Multiplier"
+                        },
+                        "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+                    },
+                    {
+                        "name": "window",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "description": "RSI calculation window",
+                            "default": 14,
+                            "title": "Window"
+                        },
+                        "description": "RSI calculation window"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/MultipleRSIResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/rsi/signals": {
+            "get": {
+                "tags": [
+                    "RSI"
+                ],
+                "summary": "Get Trading Signals",
+                "description": "Gera sinais de trading baseados em RSI para múltiplas cryptos\n\nRetorna lista ordenada por força do sinal (mais forte primeiro)",
+                "operationId": "get_trading_signals_rsi_signals_get",
+                "parameters": [
+                    {
+                        "name": "symbols",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "description": "Símbolos separados por vírgula",
+                            "default": "BTCUSD,ETHUSD,SOLUSD,ADAUSD",
+                            "title": "Symbols"
+                        },
+                        "description": "Símbolos separados por vírgula"
+                    },
+                    {
+                        "name": "timespan",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "description": "Timeframe: minute, hour, day",
+                            "default": "day",
+                            "title": "Timespan"
+                        },
+                        "description": "Timeframe: minute, hour, day"
+                    },
+                    {
+                        "name": "multiplier",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)",
+                            "default": 1,
+                            "title": "Multiplier"
+                        },
+                        "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+                    },
+                    {
+                        "name": "window",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "description": "RSI calculation window",
+                            "default": 14,
+                            "title": "Window"
+                        },
+                        "description": "RSI calculation window"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SignalResponse"
+                                    },
+                                    "title": "Response Get Trading Signals Rsi Signals Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/rsi/health": {
+            "get": {
+                "tags": [
+                    "RSI"
+                ],
+                "summary": "Health Check",
+                "description": "Verifica se a integração com Polygon.io está funcionando",
+                "operationId": "health_check_rsi_health_get",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HealthResponse"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/": {
+            "get": {
+                "summary": "Root",
+                "description": "Endpoint raiz",
+                "operationId": "root__get",
                 "responses": {
                     "200": {
                         "description": "Successful Response",
@@ -129,68 +291,19 @@
                 }
             }
         },
-        "/cache/stats": {
+        "/health": {
             "get": {
-                "summary": "Get Cache Stats",
-                "description": "Obtém estatísticas do cache.",
-                "operationId": "get_cache_stats_cache_stats_get",
+                "summary": "Health",
+                "description": "Health check geral",
+                "operationId": "health_health_get",
                 "responses": {
                     "200": {
                         "description": "Successful Response",
                         "content": {
                             "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/cache/clear": {
-            "post": {
-                "summary": "Clear Cache",
-                "description": "Limpa todo o cache.",
-                "operationId": "clear_cache_cache_clear_post",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/data/summary": {
-            "get": {
-                "summary": "Get Data Summary",
-                "description": "Obtém resumo dos dados coletados.",
-                "operationId": "get_data_summary_data_summary_get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/config": {
-            "get": {
-                "summary": "Get Config",
-                "description": "Obtém configuração atual (sem dados sensíveis).",
-                "operationId": "get_config_config_get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
+                                "schema": {
+                                    "$ref": "#/components/schemas/StatusResponse"
+                                }
                             }
                         }
                     }
@@ -212,6 +325,181 @@
                 },
                 "type": "object",
                 "title": "HTTPValidationError"
+            },
+            "HealthResponse": {
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "title": "Status"
+                    },
+                    "polygon_api": {
+                        "type": "string",
+                        "title": "Polygon Api"
+                    },
+                    "message": {
+                        "type": "string",
+                        "title": "Message"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "status",
+                    "polygon_api",
+                    "message"
+                ],
+                "title": "HealthResponse",
+                "description": "DTO para health check"
+            },
+            "MultipleRSIResponse": {
+                "properties": {
+                    "results": {
+                        "additionalProperties": {
+                            "anyOf": [
+                                {
+                                    "$ref": "#/components/schemas/RSIResponse"
+                                },
+                                {
+                                    "type": "null"
+                                }
+                            ]
+                        },
+                        "type": "object",
+                        "title": "Results"
+                    },
+                    "successful_count": {
+                        "type": "integer",
+                        "title": "Successful Count"
+                    },
+                    "total_count": {
+                        "type": "integer",
+                        "title": "Total Count"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "results",
+                    "successful_count",
+                    "total_count"
+                ],
+                "title": "MultipleRSIResponse",
+                "description": "DTO para resposta de múltiplos RSI"
+            },
+            "RSIResponse": {
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "title": "Symbol"
+                    },
+                    "rsi_value": {
+                        "type": "number",
+                        "title": "Rsi Value"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "title": "Timestamp"
+                    },
+                    "timespan": {
+                        "type": "string",
+                        "title": "Timespan"
+                    },
+                    "window": {
+                        "type": "integer",
+                        "title": "Window"
+                    },
+                    "source": {
+                        "type": "string",
+                        "title": "Source"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "symbol",
+                    "rsi_value",
+                    "timestamp",
+                    "timespan",
+                    "window",
+                    "source"
+                ],
+                "title": "RSIResponse",
+                "description": "DTO para resposta de consulta de RSI"
+            },
+            "SignalResponse": {
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "title": "Symbol"
+                    },
+                    "signal_type": {
+                        "type": "string",
+                        "title": "Signal Type"
+                    },
+                    "strength": {
+                        "type": "string",
+                        "title": "Strength"
+                    },
+                    "rsi_value": {
+                        "type": "number",
+                        "title": "Rsi Value"
+                    },
+                    "timestamp": {
+                        "type": "string",
+                        "title": "Timestamp"
+                    },
+                    "timeframe": {
+                        "type": "string",
+                        "title": "Timeframe"
+                    },
+                    "message": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "interpretation": {
+                        "type": "string",
+                        "title": "Interpretation"
+                    },
+                    "risk_level": {
+                        "type": "string",
+                        "title": "Risk Level"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "symbol",
+                    "signal_type",
+                    "strength",
+                    "rsi_value",
+                    "timestamp",
+                    "timeframe",
+                    "message",
+                    "interpretation",
+                    "risk_level"
+                ],
+                "title": "SignalResponse",
+                "description": "DTO para resposta de sinal de trading"
+            },
+            "StatusResponse": {
+                "properties": {
+                    "status": {
+                        "type": "string",
+                        "title": "Status"
+                    },
+                    "service": {
+                        "type": "string",
+                        "title": "Service"
+                    },
+                    "version": {
+                        "type": "string",
+                        "title": "Version"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "status",
+                    "service",
+                    "version"
+                ],
+                "title": "StatusResponse",
+                "description": "DTO para status geral da aplicação"
             },
             "ValidationError": {
                 "properties": {

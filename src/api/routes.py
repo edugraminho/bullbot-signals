@@ -24,6 +24,9 @@ router = APIRouter(prefix="/rsi", tags=["RSI"])
 async def get_rsi(
     symbol: str,
     timespan: str = Query("day", description="Timeframe: minute, hour, day"),
+    multiplier: int = Query(
+        1, description="Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+    ),
     window: int = Query(14, description="RSI calculation window"),
 ):
     """
@@ -33,7 +36,9 @@ async def get_rsi(
     """
     try:
         rsi_service = RSIService(settings.polygon_api_key)
-        rsi_data = await rsi_service.get_rsi_from_polygon(symbol, timespan, window)
+        rsi_data = await rsi_service.get_rsi_from_polygon(
+            symbol, timespan, multiplier, window
+        )
 
         if not rsi_data:
             raise HTTPException(
@@ -60,6 +65,9 @@ async def get_multiple_rsi(
         ..., description="Símbolos separados por vírgula (ex: BTCUSD,ETHUSD)"
     ),
     timespan: str = Query("day", description="Timeframe: minute, hour, day"),
+    multiplier: int = Query(
+        1, description="Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+    ),
     window: int = Query(14, description="RSI calculation window"),
 ):
     """
@@ -82,7 +90,9 @@ async def get_multiple_rsi(
             )
 
         rsi_service = RSIService(settings.polygon_api_key)
-        rsi_results = await rsi_service.get_multiple_rsi(symbol_list, timespan, window)
+        rsi_results = await rsi_service.get_multiple_rsi(
+            symbol_list, timespan, multiplier, window
+        )
 
         # Processar resultados
         results = {}
@@ -121,6 +131,9 @@ async def get_trading_signals(
         "BTCUSD,ETHUSD,SOLUSD,ADAUSD", description="Símbolos separados por vírgula"
     ),
     timespan: str = Query("day", description="Timeframe: minute, hour, day"),
+    multiplier: int = Query(
+        1, description="Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+    ),
     window: int = Query(14, description="RSI calculation window"),
 ):
     """
@@ -142,7 +155,9 @@ async def get_trading_signals(
             )
 
         rsi_service = RSIService(settings.polygon_api_key)
-        analyses = await rsi_service.get_trading_signals(symbol_list, timespan, window)
+        analyses = await rsi_service.get_trading_signals(
+            symbol_list, timespan, multiplier, window
+        )
 
         # Converter para response model
         signals = []

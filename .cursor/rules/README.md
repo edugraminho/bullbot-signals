@@ -4,9 +4,9 @@ Este diretório contém as regras do Cursor AI organizadas por domínio para o p
 
 ## Estrutura
 
-- `architecture.mdc` - Princípios arquiteturais e padrões de design
+- `architecture.mdc` - Princípios arquiteturais, padrões de design e **containerização obrigatória**
 - `trading-domain.mdc` - Regras específicas do domínio de trading
-- `code-quality.mdc` - Padrões de qualidade de código
+- `code-quality.mdc` - Padrões de qualidade de código e **execução em containers**
 - `database.mdc` - Regras de banco de dados e persistência
 - `security.mdc` - Diretrizes de segurança
 - `testing.mdc` - Estratégia de testes

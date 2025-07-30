@@ -1,3 +1,49 @@
----
+# Regras Arquiteturais
+
+## Princípios Gerais
+
+- **Clean Architecture**: Separação clara entre domínio, aplicação e infraestrutura
+- **Dependency Inversion**: Dependa de abstrações, não de implementações
+- **Single Responsibility**: Cada classe/módulo tem uma responsabilidade única
+- **Open/Closed**: Aberto para extensão, fechado para modificação
+
+## Estrutura de Camadas
+
+### Core (Domínio)
+- **Models**: Entidades de negócio puras
+- **Services**: Lógica de negócio
+- **Interfaces**: Contratos para adapters
+
+### Adapters (Infraestrutura)
+- **External APIs**: Clientes para APIs externas
+- **Database**: Repositórios e ORM
+- **File System**: Operações de arquivo
+
+### API (Interface)
+- **Schemas**: DTOs para serialização
+- **Routes**: Endpoints HTTP
+- **Middleware**: Autenticação, logging, etc.
+
+## Containerização
+
+- **Desenvolvimento SEMPRE em containers**
+- Use `docker-compose` para orquestração
+- Todos os comandos Python devem ser executados via `docker-compose exec app`
+- Mantenha `Dockerfile` otimizado para produção
+- Use volumes para desenvolvimento local
+
+## Padrões de Nomenclatura
+
+- **Models**: Substantivos (RSIData, TradingSignal)
+- **Services**: Verbos + substantivos (RSIService, SignalGenerator)
+- **Adapters**: Cliente + API (PolygonClient, BinanceClient)
+- **Schemas**: Request/Response (RSIRequest, SignalResponse)
+
+## Injeção de Dependência
+
+- Use interfaces para acoplamento fraco
+- Configure dependências no nível da aplicação
+- Evite dependências circulares
+- Use factory pattern quando necessário
 alwaysApply: false
 ---

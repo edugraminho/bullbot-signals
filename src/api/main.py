@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from src.api.v1 import rsi
+from src.api import routes
 from src.api.schemas.common import StatusResponse
 from src.utils.config import settings
 from src.utils.logger import get_logger
@@ -47,7 +47,7 @@ app.add_middleware(
 )
 
 # Incluir routers
-app.include_router(rsi.router, prefix="/api/v1")
+app.include_router(routes.router)
 
 
 @app.get("/")
@@ -57,7 +57,7 @@ async def root():
         "message": "🤖 Crypto Hunter API",
         "version": "1.0.0",
         "docs": "/docs",
-        "health": "/api/v1/rsi/health",
+        "health": "/rsi/health",
     }
 
 
