@@ -2,12 +2,11 @@
 Endpoints para operações com RSI
 """
 
-from typing import List
+
 from fastapi import APIRouter, HTTPException, Query
 
 from src.api.schemas.rsi import (
     RSIResponse,
-    SignalResponse,
     MultipleRSIResponse,
     HealthResponse,
 )
@@ -136,66 +135,7 @@ async def get_multiple_rsi(
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 
-@router.get("/signals", response_model=List[SignalResponse])
-async def get_trading_signals(
-    symbols: str = Query(
-        "BTC,ETH,SOL,ADA", description="Símbolos separados por vírgula"
-    ),
-    interval: str = Query(
-        "1d",
-        description="Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M",
-    ),
-    window: int = Query(14, description="RSI calculation window"),
-    source: str = Query(
-        "binance", description="Fonte dos dados: binance, gate ou mexc"
-    ),
-):
-    """
-    Gera sinais de trading baseados em RSI para múltiplas cryptos
 
-    Retorna lista ordenada por força do sinal (mais forte primeiro)
-    """
-    try:
-        # Processar símbolos
-        symbol_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
-
-        if not symbol_list:
-            # Usar símbolos padrão se nenhum fornecido
-            symbol_list = ["BTC", "ETH", "SOL", "ADA"]
-
-        if len(symbol_list) > 20:
-            raise HTTPException(
-                status_code=400, detail="Máximo 20 símbolos para análise de sinais"
-            )
-
-        rsi_service = RSIService()
-        analyses = await rsi_service.get_trading_signals(
-            symbol_list, interval, window, source
-        )
-
-        # Converter para response model
-        signals = []
-        for analysis in analyses:
-            signal_response = SignalResponse(
-                symbol=analysis.signal.symbol.upper(),
-                signal_type=analysis.signal.signal_type.value,
-                strength=analysis.signal.strength.value,
-                rsi_value=float(analysis.signal.rsi_value),
-                timestamp=analysis.signal.timestamp.isoformat(),
-                timeframe=analysis.signal.timeframe,
-                message=analysis.signal.message,
-                interpretation=analysis.interpretation,
-                risk_level=analysis.risk_level,
-            )
-            signals.append(signal_response)
-
-        return signals
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Erro ao gerar sinais de trading: {e}")
-        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -204,16 +144,31 @@ async def health_check():
     try:
         rsi_service = RSIService()
         # Testar com Bitcoin
-        rsi_data = await rsi_service.get_rsi_from_gate("BTC", "1d", 14)
+        rsi_data_gate = await rsi_service.get_rsi_from_gate("BTC", "1d", 14)
+        rsi_data_mexc = await rsi_service.get_rsi_from_mexc("BTC", "1d", 14)
+        rsi_data_binance = await rsi_service.get_rsi_from_binance("BTC", "1d", 14)
 
         return HealthResponse(
-            status="healthy" if rsi_data else "degraded",
-            polygon_api="connected" if rsi_data else "error",
+            status="healthy" if all([rsi_data_gate, rsi_data_mexc, rsi_data_binance]) else "degraded",
+            api={
+                "gate": "connected" if rsi_data_gate else "error",
+                "mexc": "connected" if rsi_data_mexc else "error",
+                "binance": "connected" if rsi_data_binance else "error",
+            },
             message="RSI service operational"
-            if rsi_data
-            else "Unable to fetch RSI data",
+            if all([rsi_data_gate, rsi_data_mexc, rsi_data_binance])
+            else "Unable to fetch RSI data from: "
+                 + ", ".join(
+                    name
+                    for name, ok in [
+                        ("gate", rsi_data_gate),
+                        ("mexc", rsi_data_mexc),
+                        ("binance", rsi_data_binance),
+                    ]
+                    if not ok
+                 )
         )
 
     except Exception as e:
         logger.error(f"Health check falhou: {e}")
-        return HealthResponse(status="unhealthy", polygon_api="error", message=str(e))
+        return HealthResponse(status="unhealthy", api="error", message=str(e))

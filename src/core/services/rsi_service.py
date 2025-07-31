@@ -283,50 +283,6 @@ class RSIService:
             risk_level=risk_level,
         )
 
-    async def get_trading_signals(
-        self,
-        symbols: List[str],
-        interval: str = "1d",
-        window: int = 14,
-        source: str = "binance",
-    ) -> List[RSIAnalysis]:
-        """
-        Gera sinais de trading para múltiplas cryptos
-
-        Returns:
-            Lista de análises RSI com sinais
-        """
-        # Buscar RSI para todas as cryptos usando a fonte especificada
-        rsi_results = {}
-        for symbol in symbols:
-            rsi_data = await self.get_rsi(symbol, interval, window, source)
-            rsi_results[symbol] = rsi_data
-
-        # Analisar cada RSI e gerar sinais
-        analyses = []
-        for symbol, rsi_data in rsi_results.items():
-            if rsi_data:
-                analysis = self.analyze_rsi(rsi_data)
-                analyses.append(analysis)
-            else:
-                logger.warning(
-                    f"Não foi possível analisar {symbol} - dados RSI indisponíveis"
-                )
-
-        # Ordenar por força do sinal (mais forte primeiro)
-        strength_order = {
-            SignalStrength.STRONG: 3,
-            SignalStrength.MODERATE: 2,
-            SignalStrength.WEAK: 1,
-        }
-
-        analyses.sort(
-            key=lambda x: strength_order.get(x.signal.strength, 0), reverse=True
-        )
-
-        logger.info(f"Gerados {len(analyses)} sinais de trading")
-        return analyses
-
     def should_notify(self, analysis: RSIAnalysis) -> bool:
         """
         Determina se um sinal deve gerar notificação

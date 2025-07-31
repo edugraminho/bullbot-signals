@@ -20,20 +20,6 @@ class RSIResponse(BaseModel):
     data_source: str
 
 
-class SignalResponse(BaseModel):
-    """DTO para resposta de sinal de trading"""
-
-    symbol: str
-    signal_type: str
-    strength: str
-    rsi_value: float
-    timestamp: str
-    timeframe: str
-    message: str
-    interpretation: str
-    risk_level: str
-
-
 class MultipleRSIResponse(BaseModel):
     """DTO para resposta de múltiplos RSI"""
 
@@ -46,5 +32,5 @@ class HealthResponse(BaseModel):
     """DTO para health check"""
 
     status: str
-    polygon_api: str
+    api: Dict[str, str]
     message: str

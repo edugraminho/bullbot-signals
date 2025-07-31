@@ -212,16 +212,6 @@ GET /api/v1/rsi/multiple?symbols={symbol1},{symbol2}
 curl "http://localhost:8000/api/v1/rsi/multiple?symbols=BTCUSD,ETHUSD,SOLUSD"
 ```
 
-### Sinais de Trading
-```bash
-GET /api/v1/rsi/signals?symbols={symbol1},{symbol2}
-```
-
-**Exemplo:**
-```bash
-curl "http://localhost:8000/api/v1/rsi/signals?symbols=BTCUSD,ETHUSD"
-```
-
 
 ### Health Check
 ```bash
