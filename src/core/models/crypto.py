@@ -22,19 +22,10 @@ class RSIData(BaseModel):
     symbol: str = Field(..., description="Crypto symbol")
     timestamp: datetime = Field(..., description="Data timestamp")
     value: Decimal = Field(..., description="RSI value (0-100)")
+    current_price: Decimal = Field(..., description="Current price of the asset")
     timespan: str = Field(..., description="Timeframe: minute, hour, day")
     window: int = Field(14, description="RSI calculation window")
     source: str = Field(..., description="Data source: polygon, calculated")
-
-
-class PolygonRSIResponse(BaseModel):
-    """Resposta da API Polygon.io para RSI (modelo de domínio)"""
-
-    symbol: str
-    values: List[RSIData]
-    next_url: Optional[str] = None
-    request_id: Optional[str] = None
-    status: str
 
 
 class OHLCVData(BaseModel):

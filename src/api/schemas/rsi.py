@@ -12,10 +12,12 @@ class RSIResponse(BaseModel):
 
     symbol: str
     rsi_value: float
+    current_price: float
     timestamp: str
     timespan: str
     window: int
     source: str
+    data_source: str
 
 
 class SignalResponse(BaseModel):

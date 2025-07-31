@@ -23,22 +23,23 @@ router = APIRouter(prefix="/rsi", tags=["RSI"])
 @router.get("/single/{symbol}", response_model=RSIResponse)
 async def get_rsi(
     symbol: str,
-    timespan: str = Query("day", description="Timeframe: minute, hour, day"),
-    multiplier: int = Query(
-        1, description="Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+    interval: str = Query(
+        "1d",
+        description="Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M",
     ),
     window: int = Query(14, description="RSI calculation window"),
+    source: str = Query(
+        "binance", description="Fonte dos dados: binance, gate ou mexc"
+    ),
 ):
     """
     Busca RSI para uma criptomoeda específica
 
-    Exemplos de símbolos: BTCUSD, ETHUSD, SOLUSD
+    Exemplos de símbolos: BTC, ETH, SOL
     """
     try:
-        rsi_service = RSIService(settings.polygon_api_key)
-        rsi_data = await rsi_service.get_rsi_from_polygon(
-            symbol, timespan, multiplier, window
-        )
+        rsi_service = RSIService()
+        rsi_data = await rsi_service.get_rsi(symbol, interval, window, source)
 
         if not rsi_data:
             raise HTTPException(
@@ -46,12 +47,14 @@ async def get_rsi(
             )
 
         return RSIResponse(
-            symbol=rsi_data.symbol,
+            symbol=rsi_data.symbol.upper(),
             rsi_value=float(rsi_data.value),
+            current_price=float(rsi_data.current_price),
             timestamp=rsi_data.timestamp.isoformat(),
             timespan=rsi_data.timespan,
             window=rsi_data.window,
             source=rsi_data.source,
+            data_source=source,
         )
 
     except Exception as e:
@@ -62,18 +65,21 @@ async def get_rsi(
 @router.get("/multiple", response_model=MultipleRSIResponse)
 async def get_multiple_rsi(
     symbols: str = Query(
-        ..., description="Símbolos separados por vírgula (ex: BTCUSD,ETHUSD)"
+        ..., description="Símbolos separados por vírgula (ex: BTC,ETH,SOL)"
     ),
-    timespan: str = Query("day", description="Timeframe: minute, hour, day"),
-    multiplier: int = Query(
-        1, description="Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+    interval: str = Query(
+        "1d",
+        description="Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M",
     ),
     window: int = Query(14, description="RSI calculation window"),
+    source: str = Query(
+        "binance", description="Fonte dos dados: binance, gate ou mexc"
+    ),
 ):
     """
     Busca RSI para múltiplas criptomoedas
 
-    Exemplo: /rsi/multiple?symbols=BTCUSD,ETHUSD,SOLUSD
+    Exemplo: /rsi/multiple?symbols=BTC,ETH,SOL
     """
     try:
         # Processar símbolos
@@ -89,10 +95,13 @@ async def get_multiple_rsi(
                 status_code=400, detail="Máximo 10 símbolos por consulta"
             )
 
-        rsi_service = RSIService(settings.polygon_api_key)
-        rsi_results = await rsi_service.get_multiple_rsi(
-            symbol_list, timespan, multiplier, window
-        )
+        rsi_service = RSIService()
+
+        # Buscar RSI para cada símbolo usando a fonte especificada
+        rsi_results = {}
+        for symbol in symbol_list:
+            rsi_data = await rsi_service.get_rsi(symbol, interval, window, source)
+            rsi_results[symbol] = rsi_data
 
         # Processar resultados
         results = {}
@@ -101,12 +110,14 @@ async def get_multiple_rsi(
         for symbol, rsi_data in rsi_results.items():
             if rsi_data:
                 results[symbol] = RSIResponse(
-                    symbol=rsi_data.symbol,
+                    symbol=rsi_data.symbol.upper(),
                     rsi_value=float(rsi_data.value),
+                    current_price=float(rsi_data.current_price),
                     timestamp=rsi_data.timestamp.isoformat(),
                     timespan=rsi_data.timespan,
                     window=rsi_data.window,
                     source=rsi_data.source,
+                    data_source=source,
                 )
                 successful_count += 1
             else:
@@ -128,13 +139,16 @@ async def get_multiple_rsi(
 @router.get("/signals", response_model=List[SignalResponse])
 async def get_trading_signals(
     symbols: str = Query(
-        "BTCUSD,ETHUSD,SOLUSD,ADAUSD", description="Símbolos separados por vírgula"
+        "BTC,ETH,SOL,ADA", description="Símbolos separados por vírgula"
     ),
-    timespan: str = Query("day", description="Timeframe: minute, hour, day"),
-    multiplier: int = Query(
-        1, description="Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+    interval: str = Query(
+        "1d",
+        description="Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M",
     ),
     window: int = Query(14, description="RSI calculation window"),
+    source: str = Query(
+        "binance", description="Fonte dos dados: binance, gate ou mexc"
+    ),
 ):
     """
     Gera sinais de trading baseados em RSI para múltiplas cryptos
@@ -147,23 +161,23 @@ async def get_trading_signals(
 
         if not symbol_list:
             # Usar símbolos padrão se nenhum fornecido
-            symbol_list = settings.default_symbols
+            symbol_list = ["BTC", "ETH", "SOL", "ADA"]
 
         if len(symbol_list) > 20:
             raise HTTPException(
                 status_code=400, detail="Máximo 20 símbolos para análise de sinais"
             )
 
-        rsi_service = RSIService(settings.polygon_api_key)
+        rsi_service = RSIService()
         analyses = await rsi_service.get_trading_signals(
-            symbol_list, timespan, multiplier, window
+            symbol_list, interval, window, source
         )
 
         # Converter para response model
         signals = []
         for analysis in analyses:
             signal_response = SignalResponse(
-                symbol=analysis.signal.symbol,
+                symbol=analysis.signal.symbol.upper(),
                 signal_type=analysis.signal.signal_type.value,
                 strength=analysis.signal.strength.value,
                 rsi_value=float(analysis.signal.rsi_value),
@@ -186,11 +200,11 @@ async def get_trading_signals(
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Verifica se a integração com Polygon.io está funcionando"""
+    """Verifica se a integração com Gate.io está funcionando"""
     try:
-        rsi_service = RSIService(settings.polygon_api_key)
+        rsi_service = RSIService()
         # Testar com Bitcoin
-        rsi_data = await rsi_service.get_rsi_from_polygon("BTCUSD", "day", 14)
+        rsi_data = await rsi_service.get_rsi_from_gate("BTC", "1d", 14)
 
         return HealthResponse(
             status="healthy" if rsi_data else "degraded",

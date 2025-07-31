@@ -11,28 +11,14 @@ class Settings(BaseSettings):
     """Configurações principais do projeto"""
 
     # ===============================================
-    # Polygon.io Settings
+    # RSI Settings
     # ===============================================
 
-    # Rate limit - requests per minute
-    polygon_rate_limit: int = Field(5, env="POLYGON_RATE_LIMIT")
-
-    # Default Crypto Symbols to Monitor
-    default_symbols: List[str] = ["BTCUSD", "ETHUSD", "SOLUSD", "ADAUSD"]
-
-    # RSI Settings
-    rsi_adjusted: bool = Field(
-        True, env="RSI_ADJUSTED"
-    )  # Ajustar para splits suavização
-    default_rsi_window: int = 14
-    default_timespan: str = "day"
+    rsi_historical_periods: int = 100
 
     # ===============================================
     # API Settings
     # ===============================================
-
-    # API Keys
-    polygon_api_key: str = Field(..., env="POLYGON_API_KEY")
 
     # Database
     database_url: str = Field(

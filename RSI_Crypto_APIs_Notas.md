@@ -220,3 +220,16 @@ def calculate_rsi(prices, period=14):
 
 *Notas criadas em: Janeiro 2025*
 *Fonte: Conversa sobre APIs de RSI para criptomoedas* 
+
+
+
+
+trocar APIs! A arquitetura está bem estruturada com padrão de Adapter/Repository.
+📋 Pontos Positivos da Arquitetura:
+1. Separação de Responsabilidades:
+src/adapters/ - Contém apenas clientes de APIs externas
+src/core/services/ - Lógica de negócio independente da API
+src/api/routes.py - Endpoints da API
+2. Inversão de Dependência:
+RSIService usa PolygonClient mas pode usar qualquer client
+Interfaces bem definidas com RSIData model

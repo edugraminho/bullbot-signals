@@ -12,7 +12,7 @@
                     "RSI"
                 ],
                 "summary": "Get Rsi",
-                "description": "Busca RSI para uma criptomoeda específica\n\nExemplos de símbolos: BTCUSD, ETHUSD, SOLUSD",
+                "description": "Busca RSI para uma criptomoeda específica\n\nExemplos de símbolos: BTC, ETH, SOL",
                 "operationId": "get_rsi_rsi_single__symbol__get",
                 "parameters": [
                     {
@@ -25,28 +25,16 @@
                         }
                     },
                     {
-                        "name": "timespan",
+                        "name": "interval",
                         "in": "query",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "description": "Timeframe: minute, hour, day",
-                            "default": "day",
-                            "title": "Timespan"
+                            "description": "Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M",
+                            "default": "1d",
+                            "title": "Interval"
                         },
-                        "description": "Timeframe: minute, hour, day"
-                    },
-                    {
-                        "name": "multiplier",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)",
-                            "default": 1,
-                            "title": "Multiplier"
-                        },
-                        "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+                        "description": "Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M"
                     },
                     {
                         "name": "window",
@@ -59,6 +47,18 @@
                             "title": "Window"
                         },
                         "description": "RSI calculation window"
+                    },
+                    {
+                        "name": "source",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "description": "Fonte dos dados: binance ou gate",
+                            "default": "binance",
+                            "title": "Source"
+                        },
+                        "description": "Fonte dos dados: binance ou gate"
                     }
                 ],
                 "responses": {
@@ -91,7 +91,7 @@
                     "RSI"
                 ],
                 "summary": "Get Multiple Rsi",
-                "description": "Busca RSI para múltiplas criptomoedas\n\nExemplo: /rsi/multiple?symbols=BTCUSD,ETHUSD,SOLUSD",
+                "description": "Busca RSI para múltiplas criptomoedas\n\nExemplo: /rsi/multiple?symbols=BTC,ETH,SOL",
                 "operationId": "get_multiple_rsi_rsi_multiple_get",
                 "parameters": [
                     {
@@ -100,34 +100,22 @@
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "description": "Símbolos separados por vírgula (ex: BTCUSD,ETHUSD)",
+                            "description": "Símbolos separados por vírgula (ex: BTC,ETH,SOL)",
                             "title": "Symbols"
                         },
-                        "description": "Símbolos separados por vírgula (ex: BTCUSD,ETHUSD)"
+                        "description": "Símbolos separados por vírgula (ex: BTC,ETH,SOL)"
                     },
                     {
-                        "name": "timespan",
+                        "name": "interval",
                         "in": "query",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "description": "Timeframe: minute, hour, day",
-                            "default": "day",
-                            "title": "Timespan"
+                            "description": "Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M",
+                            "default": "1d",
+                            "title": "Interval"
                         },
-                        "description": "Timeframe: minute, hour, day"
-                    },
-                    {
-                        "name": "multiplier",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)",
-                            "default": 1,
-                            "title": "Multiplier"
-                        },
-                        "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+                        "description": "Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M"
                     },
                     {
                         "name": "window",
@@ -140,6 +128,18 @@
                             "title": "Window"
                         },
                         "description": "RSI calculation window"
+                    },
+                    {
+                        "name": "source",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "description": "Fonte dos dados: binance ou gate",
+                            "default": "binance",
+                            "title": "Source"
+                        },
+                        "description": "Fonte dos dados: binance ou gate"
                     }
                 ],
                 "responses": {
@@ -182,34 +182,22 @@
                         "schema": {
                             "type": "string",
                             "description": "Símbolos separados por vírgula",
-                            "default": "BTCUSD,ETHUSD,SOLUSD,ADAUSD",
+                            "default": "BTC,ETH,SOL,ADA",
                             "title": "Symbols"
                         },
                         "description": "Símbolos separados por vírgula"
                     },
                     {
-                        "name": "timespan",
+                        "name": "interval",
                         "in": "query",
                         "required": false,
                         "schema": {
                             "type": "string",
-                            "description": "Timeframe: minute, hour, day",
-                            "default": "day",
-                            "title": "Timespan"
+                            "description": "Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M",
+                            "default": "1d",
+                            "title": "Interval"
                         },
-                        "description": "Timeframe: minute, hour, day"
-                    },
-                    {
-                        "name": "multiplier",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)",
-                            "default": 1,
-                            "title": "Multiplier"
-                        },
-                        "description": "Multiplier for timespan (e.g., 15 for 15min, 4 for 4hr)"
+                        "description": "Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M"
                     },
                     {
                         "name": "window",
@@ -222,6 +210,18 @@
                             "title": "Window"
                         },
                         "description": "RSI calculation window"
+                    },
+                    {
+                        "name": "source",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "description": "Fonte dos dados: binance ou gate",
+                            "default": "binance",
+                            "title": "Source"
+                        },
+                        "description": "Fonte dos dados: binance ou gate"
                     }
                 ],
                 "responses": {
@@ -258,7 +258,7 @@
                     "RSI"
                 ],
                 "summary": "Health Check",
-                "description": "Verifica se a integração com Polygon.io está funcionando",
+                "description": "Verifica se a integração com Gate.io está funcionando",
                 "operationId": "health_check_rsi_health_get",
                 "responses": {
                     "200": {
@@ -394,6 +394,10 @@
                         "type": "number",
                         "title": "Rsi Value"
                     },
+                    "current_price": {
+                        "type": "number",
+                        "title": "Current Price"
+                    },
                     "timestamp": {
                         "type": "string",
                         "title": "Timestamp"
@@ -409,16 +413,22 @@
                     "source": {
                         "type": "string",
                         "title": "Source"
+                    },
+                    "data_source": {
+                        "type": "string",
+                        "title": "Data Source"
                     }
                 },
                 "type": "object",
                 "required": [
                     "symbol",
                     "rsi_value",
+                    "current_price",
                     "timestamp",
                     "timespan",
                     "window",
-                    "source"
+                    "source",
+                    "data_source"
                 ],
                 "title": "RSIResponse",
                 "description": "DTO para resposta de consulta de RSI"
