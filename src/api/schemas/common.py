@@ -2,7 +2,8 @@
 Schemas comuns para a API
 """
 
-from typing import Optional, Any, Dict
+from typing import Any, Dict, Optional
+
 from pydantic import BaseModel
 
 
@@ -19,11 +20,3 @@ class SuccessResponse(BaseModel):
 
     message: str
     data: Optional[Dict[str, Any]] = None
-
-
-class StatusResponse(BaseModel):
-    """DTO para status geral da aplicação"""
-
-    status: str
-    service: str
-    version: str

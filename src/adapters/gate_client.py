@@ -12,8 +12,8 @@ import httpx
 
 from src.core.models.crypto import OHLCVData, RSIData
 from src.core.services.rsi_calculator import RSICalculator
-from src.utils.logger import get_logger
 from src.utils.config import settings
+from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -200,9 +200,9 @@ class GateClient:
         """Busca OHLCV e calcula o RSI mais recente"""
         try:
             # Buscar dados suficientes para calcular RSI usando configuração
-            total_periods = period + settings.rsi_historical_periods
+            total_periods = period + 100
             logger.info(
-                f"Buscando {total_periods} períodos para RSI (window={period} + histórico={settings.rsi_historical_periods})"
+                f"Buscando {total_periods} períodos para RSI (window={period} + histórico={100})"
             )
             ohlcv_data = await self.get_ohlcv(symbol, interval, total_periods)
 

@@ -3,7 +3,6 @@ Serviço independente para cálculo de RSI
 Baseado na documentação oficial do TradingView
 """
 
-from datetime import datetime
 from decimal import Decimal
 from typing import List
 
@@ -46,7 +45,7 @@ class RSICalculator:
 
         # Extrair preços de fechamento
         closes = [float(item["close"]) for item in sorted_data]
-        
+
         # Debug: mostrar preços de fechamento sendo usados
         logger.info(f"Total de períodos disponíveis: {len(closes)}")
         logger.info(f"Preços de fechamento para RSI (últimos 5): {closes[-5:]}")

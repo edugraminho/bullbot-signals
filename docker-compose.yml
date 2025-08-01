@@ -8,7 +8,6 @@ services:
     depends_on:
       - db
       - redis
-      # - celery_worker
     env_file:
       - .env
     networks:
@@ -25,20 +24,33 @@ services:
     networks:
       - crypto_network
   
-  # celery_worker:
-  #   build:
-  #     context: .
-  #   command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2
-  #   volumes:
-  #     - .:/app
-  #   depends_on:
-  #     - redis
-  #   env_file:
-  #     - .env
-  #   environment:
-  #     CELERY_BROKER_URL: redis://redis:6379/0
-  #   networks:
-  #     - crypto_network
+  celery_worker:
+    build:
+      context: .
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env
+    networks:
+      - crypto_network
+      
+  celery_beat:
+    build:
+      context: .
+    command: celery -A src.tasks.celery_app beat --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - db
+    env_file:
+      - .env
+    networks:
+      - crypto_network
 
   redis:
     image: redis:8.0

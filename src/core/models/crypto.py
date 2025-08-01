@@ -4,7 +4,8 @@ Modelos de dados para criptomoedas e indicadores
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List
+from typing import Optional
+
 from pydantic import BaseModel, Field
 
 

@@ -11,41 +11,97 @@ class Settings(BaseSettings):
     """Configurações principais do projeto"""
 
     # ===============================================
-    # RSI Settings
+    # Monitoring Settings
     # ===============================================
 
-    rsi_historical_periods: int = 100
+    monitoring_interval: int = 300  # seconds
+    rsi_window: int = 14
+    rsi_timeframe: str = "15m"
+    rsi_oversold_threshold: int = 30
+    rsi_overbought_threshold: int = 70
+
+    # Default symbols for monitoring
+    default_symbols: List[str] = [
+        "BTC",
+        "ETH",
+        "SOL",
+        "AAVE",
+        "AERO",
+        "AGI",
+        "ANKR",
+        "BLOCK",
+        "ADA",
+        "ATOM",
+        "CELR",
+        "DAO",
+        "AVAX",
+        "DOT",
+        "ASTR",
+        "ENJ",
+        "GHX",
+        "FET",
+        "HNT",
+        "ATH",
+        "HOT",
+        "MUBI",
+        "HBAR",
+        "LDO",
+        "AXL",
+        "KSM",
+        "XRD",
+        "IMX",
+        "BLUR",
+        "MANTA",
+        "INJ",
+        "PENDLE",
+        "CHZ",
+        "PRCL",
+        "LINK",
+        "SEI",
+        "DRIFT",
+        "RLB",
+        "MKR",
+        "SUPER",
+        "DYDX",
+        "SAND",
+        "NEAR",
+        "TIA",
+        "ENA",
+        "SFUND",
+        "ONDO",
+        "VET",
+        "ETHFI",
+        "SNX",
+        "RNDR",
+        "VIRTUAL",
+        "GALA",
+        "SPEC",
+        "JUP",
+        "TAI",
+        "STX",
+        "LPT",
+        "SUI",
+        "PAAL",
+        "TON",
+        "PRIME",
+        "UNI",
+        "RAY",
+        "RON",
+        "SCRT",
+        "UMA",
+        "USUAL",
+    ]
+
+    # Cleanup settings
+    cleanup_days: int = 30
+
+    # Task settings
+    max_retries: int = 2
+    retry_countdown: int = 60
 
     # ===============================================
     # API Settings
     # ===============================================
-
-    # Database
-    database_url: str = Field(
-        "postgresql://crypto_user:crypto_password_2025@localhost:5438/crypto_hunter",
-        env="DATABASE_URL",
-    )
-
-    # Redis
-    redis_url: str = Field("redis://localhost:6388/0", env="REDIS_URL")
-
-    # Celery
-    celery_broker_url: str = Field("redis://localhost:6388/0", env="CELERY_BROKER_URL")
-    celery_result_backend: str = Field(
-        "redis://localhost:6388/0", env="CELERY_RESULT_BACKEND"
-    )
-
-    # API Settings
-    api_host: str = Field("0.0.0.0", env="API_HOST")
-    api_port: int = Field(8000, env="API_PORT")
-    debug: bool = Field(False, env="DEBUG")
-
-    # Notification Settings
-    telegram_bot_token: Optional[str] = Field(None, env="TELEGRAM_BOT_TOKEN")
-    telegram_chat_id: Optional[str] = Field(None, env="TELEGRAM_CHAT_ID")
-
-    # Monitoring Settings - seconds
-    monitoring_interval: int = 300
 
     class Config:
         env_file = ".env"

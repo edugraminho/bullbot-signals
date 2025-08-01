@@ -2,29 +2,15 @@
 API principal do Crypto Hunter
 """
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from contextlib import asynccontextmanager
-
-from src.api import routes
-from src.api.schemas.common import StatusResponse
-from src.utils.config import settings
+from src.api.routes import rsi_routes
+from src.database.connection import create_tables
 from src.utils.logger import get_logger
+from src.api.routes.admin_routes import router as admin_router
+from src.api.routes.debug_routes import router as debug_router
 
 logger = get_logger(__name__)
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Gerencia o ciclo de vida da aplicação"""
-    # Startup
-    logger.info("🚀 Crypto Hunter API iniciando...")
-    logger.info(f"Configurações: Debug={settings.debug}")
-
-    yield
-
-    # Shutdown
-    logger.info("📋 Crypto Hunter API finalizando...")
 
 
 # Criar aplicação FastAPI
@@ -34,20 +20,31 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
-    lifespan=lifespan,
 )
 
 # Configurar CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Em produção, especificar domínios
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
 # Incluir routers
-app.include_router(routes.router)
+app.include_router(rsi_routes.router)
+app.include_router(admin_router)
+app.include_router(debug_router)
+
+
+@app.on_event("startup")
+def startup_event():
+    """Initialize database tables on startup."""
+    try:
+        create_tables()
+    except Exception as e:
+        logger.error(f"❌ Erro ao criar tabelas: {e}")
+        raise
 
 
 @app.get("/")
@@ -58,24 +55,6 @@ async def root():
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/rsi/health",
+        "admin": "/admin/status",
+        "debug": "/debug/system-health",
     }
-
-
-@app.get("/health", response_model=StatusResponse)
-async def health():
-    """Health check geral"""
-    return StatusResponse(
-        status="healthy", service="crypto-hunter-api", version="1.0.0"
-    )
-
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(
-        "src.api.main:app",
-        host=settings.api_host,
-        port=settings.api_port,
-        reload=settings.debug,
-        log_level="info",
-    )

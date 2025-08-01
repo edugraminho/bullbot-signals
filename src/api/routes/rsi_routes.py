@@ -2,7 +2,6 @@
 Endpoints para operações com RSI
 """
 
-
 from fastapi import APIRouter, HTTPException, Query
 
 from src.api.schemas.rsi import (
@@ -135,9 +134,6 @@ async def get_multiple_rsi(
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 
-
-
-
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
     """Verifica se a integração com Gate.io está funcionando"""
@@ -149,7 +145,9 @@ async def health_check():
         rsi_data_binance = await rsi_service.get_rsi_from_binance("BTC", "1d", 14)
 
         return HealthResponse(
-            status="healthy" if all([rsi_data_gate, rsi_data_mexc, rsi_data_binance]) else "degraded",
+            status="healthy"
+            if all([rsi_data_gate, rsi_data_mexc, rsi_data_binance])
+            else "degraded",
             api={
                 "gate": "connected" if rsi_data_gate else "error",
                 "mexc": "connected" if rsi_data_mexc else "error",
@@ -158,15 +156,15 @@ async def health_check():
             message="RSI service operational"
             if all([rsi_data_gate, rsi_data_mexc, rsi_data_binance])
             else "Unable to fetch RSI data from: "
-                 + ", ".join(
-                    name
-                    for name, ok in [
-                        ("gate", rsi_data_gate),
-                        ("mexc", rsi_data_mexc),
-                        ("binance", rsi_data_binance),
-                    ]
-                    if not ok
-                 )
+            + ", ".join(
+                name
+                for name, ok in [
+                    ("gate", rsi_data_gate),
+                    ("mexc", rsi_data_mexc),
+                    ("binance", rsi_data_binance),
+                ]
+                if not ok
+            ),
         )
 
     except Exception as e:
