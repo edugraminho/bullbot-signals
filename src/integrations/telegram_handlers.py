@@ -140,15 +140,24 @@ class TelegramBot:
 
             # Configuração ativa do sistema
             if active_config:
+                # Verificar se symbols existe e não está vazio
+                symbols_count = (
+                    len(active_config.symbols) if active_config.symbols else 0
+                )
+                timeframes_text = (
+                    ", ".join(active_config.timeframes)
+                    if active_config.timeframes
+                    else "N/A"
+                )
+
                 status_text += f"""
 
                 ⚙️ <b>Configuração Ativa do Sistema:</b>
                 📈 <b>Nome:</b> {active_config.name}
-                📊 <b>Símbolos monitorados:</b> {len(active_config.symbols)} 
-                ⏰ <b>Timeframes:</b> {", ".join(active_config.timeframes)}
+                📊 <b>Símbolos monitorados:</b> {symbols_count} 
+                ⏰ <b>Timeframes:</b> {timeframes_text}
                 📉 <b>RSI Sobrevenda:</b> ≤{active_config.rsi_oversold}
                 📈 <b>RSI Sobrecompra:</b> ≥{active_config.rsi_overbought}
-                ⏱️ <b>Cooldown:</b> {active_config.cooldown_hours}h entre sinais
                 """
             else:
                 status_text += "\n\n⚠️ <b>Nenhuma configuração ativa no sistema</b>"

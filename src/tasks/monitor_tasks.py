@@ -22,12 +22,12 @@ class MonitorTaskConfig:
     """Configuração para tasks de monitoramento"""
 
     def __init__(self):
-        self.rsi_window = settings.rsi_window
-        self.rsi_timeframe = settings.rsi_timeframe
-        self.max_retries = settings.max_retries
-        self.retry_countdown = settings.retry_countdown
-        self.cleanup_days = settings.cleanup_days
-        self.default_symbols = settings.default_symbols
+        self.rsi_window = settings.rsi_calculation_window
+        self.rsi_timeframe = settings.rsi_analysis_timeframe
+        self.max_retries = settings.task_max_retry_attempts
+        self.retry_countdown = settings.task_retry_delay_seconds
+        self.cleanup_days = settings.signal_history_retention_days
+        self.default_symbols = settings.default_crypto_symbols
 
 
 # Instância global de configuração
@@ -205,10 +205,10 @@ def get_active_symbols() -> List[str]:
             db.query(MonitoringConfig).filter(MonitoringConfig.active == True).first()  # noqa: E712
         )
 
-        if config and config.symbols:
+        if config and config.symbols and len(config.symbols) > 0:
             symbols = config.symbols
         else:
-            # Usar lista padrão se não há configuração
+            # Usar lista padrão se não há configuração ou lista vazia
             symbols = task_config.default_symbols
 
         db.close()

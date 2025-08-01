@@ -791,6 +791,26 @@
                 }
             }
         },
+        "/debug/test-telegram-message": {
+            "post": {
+                "tags": [
+                    "Debug"
+                ],
+                "summary": "Test Telegram Message",
+                "description": "Testar envio de mensagem via Telegram",
+                "operationId": "test_telegram_message_debug_test_telegram_message_post",
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/": {
             "get": {
                 "summary": "Root",
@@ -946,14 +966,6 @@
                             "4h"
                         ]
                     },
-                    "cooldown_hours": {
-                        "type": "integer",
-                        "maximum": 24,
-                        "minimum": 0,
-                        "title": "Cooldown Hours",
-                        "description": "Cooldown entre sinais (horas)",
-                        "default": 2
-                    },
                     "active": {
                         "type": "boolean",
                         "title": "Active",
@@ -1001,10 +1013,6 @@
                         "type": "array",
                         "title": "Timeframes"
                     },
-                    "cooldown_hours": {
-                        "type": "integer",
-                        "title": "Cooldown Hours"
-                    },
                     "active": {
                         "type": "boolean",
                         "title": "Active"
@@ -1023,7 +1031,6 @@
                     "rsi_oversold",
                     "rsi_overbought",
                     "timeframes",
-                    "cooldown_hours",
                     "active",
                     "updated_at"
                 ],
@@ -1097,19 +1104,6 @@
                             }
                         ],
                         "title": "Timeframes"
-                    },
-                    "cooldown_hours": {
-                        "anyOf": [
-                            {
-                                "type": "integer",
-                                "maximum": 24,
-                                "minimum": 0
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Cooldown Hours"
                     },
                     "active": {
                         "anyOf": [
@@ -1491,10 +1485,7 @@
                 },
                 "type": "object",
                 "required": [
-                    "connected",
-                    "bot_username",
-                    "bot_id",
-                    "error_message"
+                    "connected"
                 ],
                 "title": "TelegramTestResponse",
                 "description": "Schema de resposta para teste do Telegram"

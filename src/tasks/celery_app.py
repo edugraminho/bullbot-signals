@@ -4,6 +4,7 @@ Configuração principal do Celery
 
 import os
 from celery import Celery
+from src.utils.config import settings
 
 # Configurar Celery
 celery_app = Celery(
@@ -20,29 +21,29 @@ celery_app = Celery(
 # Configurações do Celery
 celery_app.conf.update(
     # Timezone
-    timezone="UTC",
-    enable_utc=True,
+    timezone=settings.celery_timezone,
+    enable_utc=settings.celery_enable_utc,
     # Task routing
     task_routes={
         "src.tasks.monitor_tasks.*": {"queue": "monitor"},
         "src.tasks.telegram_tasks.*": {"queue": "telegram"},
         "src.tasks.telegram_bot_task.*": {"queue": "telegram"},
     },
-    # Concorrência
-    worker_concurrency=4,  # Retry configurations
-    task_acks_late=True,
-    worker_prefetch_multiplier=1,  # Task time limits
-    task_soft_time_limit=300,  # 5 minutos
-    task_time_limit=600,  # 10 minutos
+    # Concorrência e Performance
+    worker_concurrency=settings.celery_worker_count,
+    task_acks_late=settings.celery_task_acknowledge_late,
+    worker_prefetch_multiplier=settings.celery_tasks_per_worker,
+    task_soft_time_limit=settings.celery_task_warning_timeout,
+    task_time_limit=settings.celery_task_force_kill_timeout,
     # Beat schedule para monitoramento
     beat_schedule={
         "monitor-rsi-signals": {
             "task": "src.tasks.monitor_tasks.monitor_rsi_signals",
-            "schedule": 300.0,  # A cada 5 minutos
+            "schedule": float(settings.signal_monitoring_interval_seconds),
         },
         "cleanup-old-signals": {
             "task": "src.tasks.monitor_tasks.cleanup_old_signals",
-            "schedule": 86400.0,  # Diário
+            "schedule": float(settings.database_cleanup_interval_seconds),
         },
     },
 )
