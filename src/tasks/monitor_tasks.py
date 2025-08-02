@@ -4,18 +4,21 @@ Tasks principais de monitoramento RSI
 
 import asyncio
 import time
-from typing import List
+from datetime import datetime, timedelta, timezone
+from typing import List, Optional
+
 from celery import group
-from src.tasks.celery_app import celery_app
+
 from src.core.services.rsi_service import RSIService
 from src.core.services.signal_filter import signal_filter
-from src.tasks.telegram_tasks import send_telegram_signal
-from src.database.models import MonitoringConfig, SignalHistory
 from src.database.connection import SessionLocal
-from src.utils.logger import get_logger
+from src.database.models import MonitoringConfig, SignalHistory
+from src.integrations.telegram_bot import telegram_client
+from src.tasks.celery_app import celery_app
+from src.tasks.telegram_tasks import send_telegram_signal
 from src.utils.config import settings
+from src.utils.logger import get_logger
 from src.utils.trading_coins import trading_coins
-from datetime import datetime, timedelta, timezone
 
 logger = get_logger(__name__, level="INFO")
 
@@ -144,9 +147,26 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
     try:
         logger.info(f"🔄 Processando {len(symbols)} símbolos na {exchange}")
 
+        # Carregar configurações de monitoramento do banco
+        monitoring_config = get_active_monitoring_config()
+
+        # Criar RSIService com configurações personalizadas se disponível
+        if monitoring_config:
+            from src.core.models.crypto import RSILevels
+
+            custom_rsi_levels = RSILevels(
+                oversold=monitoring_config.rsi_oversold,
+                overbought=monitoring_config.rsi_overbought,
+                extreme_oversold=max(monitoring_config.rsi_oversold - 10, 10),
+                extreme_overbought=min(monitoring_config.rsi_overbought + 10, 90),
+            )
+            rsi_service = RSIService(custom_rsi_levels=custom_rsi_levels)
+        else:
+            # config.py
+            rsi_service = RSIService()
+
         # Processar cada símbolo
         results = []
-        rsi_service = RSIService()
         successful = 0
         filtered = 0
         errors = 0
@@ -255,12 +275,29 @@ def process_single_symbol(
         # Analisar RSI
         analysis = rsi_service.analyze_rsi(rsi_data)
 
+        if not analysis:
+            return {"status": "neutral_zone", "symbol": symbol, "rsi_value": rsi_data.value}
+
         # Aplicar filtros anti-spam
         should_send = loop.run_until_complete(
             signal_filter.should_send_signal(symbol, analysis)
         )
 
         if should_send:
+            # Verificar se há assinantes ativos antes de enviar
+
+            chat_ids = loop.run_until_complete(
+                telegram_client.get_active_subscribers(symbol)
+            )
+
+            if not chat_ids:
+                logger.debug(f"Nenhum assinante ativo para {symbol} - sinal ignorado")
+                return {
+                    "status": "no_subscribers",
+                    "symbol": symbol,
+                    "rsi_value": rsi_data.value,
+                }
+
             # Enviar sinal via Telegram (task assíncrona)
             # Criar dicionário serializável com os dados do sinal
             signal_data = {
@@ -282,7 +319,7 @@ def process_single_symbol(
 
             logger.info(
                 f"📡 Sinal enviado para {symbol}: {analysis.signal.signal_type.value} "
-                f"(RSI: {rsi_data.value:.2f})"
+                f"(RSI: {rsi_data.value:.2f}) - {len(chat_ids)} assinantes"
             )
 
             return {
@@ -330,9 +367,23 @@ def get_active_symbols() -> List[str]:
         return task_config.default_symbols
 
 
+def get_active_monitoring_config() -> Optional[MonitoringConfig]:
+    """Obter configuração de monitoramento ativa do banco"""
+    try:
+        db = SessionLocal()
+        config = (
+            db.query(MonitoringConfig).filter(MonitoringConfig.active == True).first()  # noqa: E712
+        )
+        db.close()
+        return config
+    except Exception as e:
+        logger.error(f"❌ Erro ao obter configuração de monitoramento: {e}")
+        return None
+
+
 def distribute_symbols_by_exchange(symbols: List[str]) -> dict:
     """
-    Distribuir símbolos entre as exchanges para rate limiting
+    Distribuir símbolos entre as exchanges baseado na disponibilidade no CSV
 
     Args:
         symbols: Lista de todos os símbolos
@@ -340,15 +391,28 @@ def distribute_symbols_by_exchange(symbols: List[str]) -> dict:
     Returns:
         Dict com exchange -> lista de símbolos
     """
-    # Distribuição simples: 1/3 para cada exchange
-    total = len(symbols)
-    third = total // 3
+    # Carregar dados do CSV para verificar exchanges disponíveis
+    coins = trading_coins.load_from_csv()
+    coin_exchanges = {coin.symbol: coin.exchanges for coin in coins}
 
-    return {
-        "binance": symbols[:third],
-        "gate": symbols[third : 2 * third],
-        "mexc": symbols[2 * third :],
-    }
+    # Inicializar listas por exchange
+    exchange_symbols = {"binance": [], "gate": [], "mexc": []}
+
+    # Distribuir símbolos baseado nas exchanges disponíveis
+    for symbol in symbols:
+        available_exchanges = coin_exchanges.get(symbol, [])
+
+        if not available_exchanges:
+            # Se não há exchanges, pular
+            continue
+
+        # Distribuir para a primeira exchange disponível
+        for exchange in ["binance", "gate", "mexc"]:
+            if exchange in available_exchanges:
+                exchange_symbols[exchange].append(symbol)
+                break
+
+    return exchange_symbols
 
 
 @celery_app.task

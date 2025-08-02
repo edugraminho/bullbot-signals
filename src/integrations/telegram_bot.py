@@ -132,12 +132,6 @@ class TelegramClient:
     ) -> List[str]:
         """
         Obter lista de chat_ids ativos
-
-        Args:
-            symbol_filter: Filtrar por símbolo específico
-
-        Returns:
-            Lista de chat_ids ativos
         """
         try:
             db = SessionLocal()
@@ -147,11 +141,12 @@ class TelegramClient:
 
             # Filtrar por símbolo se especificado
             if symbol_filter:
-                # Verificar se symbols_filter não é None e contém o símbolo
+                # Assinantes que recebem TODOS os sinais (symbols_filter vazio ou None)
+                # OU assinantes que têm esse símbolo específico no filtro
                 query = query.filter(
-                    TelegramSubscription.symbols_filter.isnot(None)
-                ).filter(
-                    TelegramSubscription.symbols_filter.any(symbol_filter)
+                    (TelegramSubscription.symbols_filter.is_(None))
+                    | (TelegramSubscription.symbols_filter == [])
+                    | (TelegramSubscription.symbols_filter.any(symbol_filter))
                 )
 
             subscriptions = query.all()

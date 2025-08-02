@@ -17,6 +17,12 @@ class Settings(BaseSettings):
     rsi_calculation_window: int = 14  # Janela de períodos para cálculo RSI
     rsi_analysis_timeframe: str = "15m"  # Timeframe para análise (15m, 1h, 4h)
 
+    # Limites RSI para sinais - O sistema prioriza a conf do banco quando ela existe
+    rsi_oversold: int = 30  # ≤ Nível de sobrevenda
+    rsi_overbought: int = 70 # ≥ Nível de sobrecompra
+    rsi_extreme_oversold: int = 20  # ≤ Sobrevenda extrema
+    rsi_extreme_overbought: int = 80  # ≥ Sobrecompra extrema
+
     # Símbolos padrão para monitoramento
     default_crypto_symbols: List[str] = [
         "BTC",
@@ -175,7 +181,7 @@ class Settings(BaseSettings):
         "USDT0",
         "FDUSD",
         "USDG",
-        # Moedas problemáticas (não disponíveis nas exchanges)
+        "USDC.E",
         "USDL",
         "BITCOIN",
         "REKT",
@@ -183,6 +189,7 @@ class Settings(BaseSettings):
         "ALCH",
         "XPR",
         "RPL",
+        "WETH",
     ]
 
     class Config:

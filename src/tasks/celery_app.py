@@ -69,3 +69,7 @@ celery_app.conf.worker_redirect_stdouts_level = "WARNING"
 logging.getLogger("celery.worker").setLevel(logging.WARNING)
 logging.getLogger("celery.task").setLevel(logging.WARNING)
 logging.getLogger("celery.worker.control").setLevel(logging.WARNING)
+
+# Silenciar logs HTTP do httpx
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)

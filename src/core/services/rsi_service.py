@@ -5,8 +5,8 @@ Serviço principal para operações com RSI
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 
-from src.adapters.gate_client import GateClient, GateError
 from src.adapters.binance_client import BinanceClient, BinanceError
+from src.adapters.gate_client import GateClient, GateError
 from src.adapters.mexc_client import MEXCClient, MEXCError
 from src.core.models.crypto import RSIData, RSILevels
 from src.core.services.rsi_calculator import RSICalculator
@@ -34,8 +34,19 @@ class RSIAnalysis:
 class RSIService:
     """Serviço para análise de RSI usando múltiplas fontes de dados"""
 
-    def __init__(self):
-        self.rsi_levels = RSILevels()
+    def __init__(self, custom_rsi_levels: Optional[RSILevels] = None):
+        from src.utils.config import settings
+
+        if custom_rsi_levels:
+            self.rsi_levels = custom_rsi_levels
+        else:
+            # Usar configurações padrão do config.py
+            self.rsi_levels = RSILevels(
+                oversold=settings.rsi_oversold,
+                overbought=settings.rsi_overbought,
+                extreme_oversold=settings.rsi_extreme_oversold,
+                extreme_overbought=settings.rsi_extreme_overbought,
+            )
 
     async def get_rsi(
         self,
@@ -203,7 +214,7 @@ class RSIService:
             logger.error(f"❌ Erro ao buscar RSI múltiplo: {e}")
             return {symbol: None for symbol in symbols}
 
-    def analyze_rsi(self, rsi_data: RSIData) -> RSIAnalysis:
+    def analyze_rsi(self, rsi_data: RSIData) -> Optional[RSIAnalysis]:
         """
         Analisa o RSI e gera sinal de trading
 
@@ -247,11 +258,7 @@ class RSIService:
             message = f"📈 Sobrevenda detectada. RSI em {rsi_value}. Possível reversão de alta."
 
         else:
-            signal_type = SignalType.HOLD
-            strength = SignalStrength.WEAK
-            interpretation = f"RSI {rsi_value} em zona neutra"
-            risk_level = "BAIXO"
-            message = f"⏸️ RSI neutro em {rsi_value}. Aguardar melhor oportunidade."
+            return None
 
         # Criar sinal
         signal = TradingSignal(
