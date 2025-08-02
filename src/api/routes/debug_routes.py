@@ -60,7 +60,7 @@ async def get_celery_status():
         )
 
     except Exception as e:
-        logger.error(f"Erro ao verificar status do Celery: {e}")
+        logger.error(f"❌ Erro ao verificar status do Celery: {e}")
         raise HTTPException(status_code=500, detail=f"Erro Celery: {str(e)}")
 
 
@@ -93,7 +93,7 @@ async def test_telegram_connection():
             )
 
     except Exception as e:
-        logger.error(f"Erro no teste do Telegram: {e}")
+        logger.error(f"❌ Erro no teste do Telegram: {e}")
         return TelegramTestResponse(connected=False, error_message=str(e))
 
 
@@ -118,7 +118,7 @@ async def get_recent_signals(
         return signals
 
     except Exception as e:
-        logger.error(f"Erro ao buscar sinais recentes: {e}")
+        logger.error(f"❌ Erro ao buscar sinais recentes: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -182,7 +182,7 @@ async def check_system_health():
         return health_status
 
     except Exception as e:
-        logger.error(f"Erro na verificação de saúde: {e}")
+        logger.error(f"❌ Erro na verificação de saúde: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -202,7 +202,7 @@ async def trigger_monitoring_task():
         }
 
     except Exception as e:
-        logger.error(f"Erro ao disparar task: {e}")
+        logger.error(f"❌ Erro ao disparar task: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -220,5 +220,5 @@ async def get_task_result(task_id: str):
         }
 
     except Exception as e:
-        logger.error(f"Erro ao obter resultado da task {task_id}: {e}")
+        logger.error(f"❌ Erro ao obter resultado da task {task_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))

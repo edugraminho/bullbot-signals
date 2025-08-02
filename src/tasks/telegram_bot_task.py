@@ -28,7 +28,7 @@ def start_telegram_bot_polling(self):
         except KeyboardInterrupt:
             logger.info("Bot interrompido manualmente")
         except Exception as e:
-            logger.error(f"Erro no bot Telegram: {e}")
+            logger.error(f"❌ Erro no bot Telegram: {e}")
             raise
         finally:
             loop.close()
@@ -36,7 +36,7 @@ def start_telegram_bot_polling(self):
         return {"status": "stopped", "task_id": self.request.id}
 
     except Exception as e:
-        logger.error(f"Erro na task do bot Telegram: {e}")
+        logger.error(f"❌ Erro na task do bot Telegram: {e}")
         return {"status": "error", "error": str(e)}
 
 
@@ -50,5 +50,5 @@ def stop_telegram_bot():
         return {"status": "stop_requested"}
 
     except Exception as e:
-        logger.error(f"Erro ao parar bot: {e}")
+        logger.error(f"❌ Erro ao parar bot: {e}")
         return {"status": "error", "error": str(e)}

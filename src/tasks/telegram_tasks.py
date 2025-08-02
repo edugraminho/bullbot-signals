@@ -115,7 +115,7 @@ def send_telegram_signal(self, analysis):
                             success_count += 1
                             logger.info(f"Mensagem enviada para chat {chat_id}")
                         except Exception as e:
-                            logger.error(f"Erro ao enviar para chat {chat_id}: {e}")
+                            logger.error(f"❌ Erro ao enviar para chat {chat_id}: {e}")
                     return success_count > 0
 
                 success = loop.run_until_complete(send_messages())
@@ -154,7 +154,7 @@ def send_telegram_signal(self, analysis):
             }
 
     except Exception as e:
-        logger.error(f"Erro ao enviar sinal Telegram: {e}")
+        logger.error(f"❌ Erro ao enviar sinal Telegram: {e}")
 
         # Retry em caso de erro
         if self.request.retries < telegram_config.max_retries:
@@ -183,7 +183,7 @@ def test_telegram_connection():
         }
 
     except Exception as e:
-        logger.error(f"Erro no teste de conexão Telegram: {e}")
+        logger.error(f"❌ Erro no teste de conexão Telegram: {e}")
         return {"status": "error", "error": str(e)}
 
 
@@ -201,5 +201,5 @@ def cleanup_inactive_subscriptions():
         return {"status": "completed", "cleaned": 0}
 
     except Exception as e:
-        logger.error(f"Erro na limpeza de assinaturas: {e}")
+        logger.error(f"❌ Erro na limpeza de assinaturas: {e}")
         return {"status": "error", "error": str(e)}

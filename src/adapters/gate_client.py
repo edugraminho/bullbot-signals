@@ -184,7 +184,7 @@ class GateClient:
         response_dict = {}
         for symbol, result in zip(symbols, results):
             if isinstance(result, Exception):
-                logger.error(f"Erro ao buscar OHLCV para {symbol}: {result}")
+                logger.error(f"❌ Erro ao buscar OHLCV para {symbol}: {result}")
                 response_dict[symbol] = []
             else:
                 response_dict[symbol] = result

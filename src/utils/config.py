@@ -2,9 +2,8 @@
 Configurações do projeto usando Pydantic Settings
 """
 
-from typing import List, Optional
+from typing import List
 from pydantic_settings import BaseSettings
-from pydantic import Field
 
 
 class Settings(BaseSettings):
@@ -13,14 +12,6 @@ class Settings(BaseSettings):
     # ===============================================
     # Monitoring Settings
     # ===============================================
-
-    # Intervalos e Frequências
-    signal_monitoring_interval_seconds: int = (
-        300  # Intervalo entre verificações de sinais
-    )
-    database_cleanup_interval_seconds: int = (
-        86400  # Intervalo para limpeza do banco (24h)
-    )
 
     # Configurações RSI
     rsi_calculation_window: int = 14  # Janela de períodos para cálculo RSI
@@ -114,17 +105,29 @@ class Settings(BaseSettings):
 
     """
 
+    # Intervalos e Frequências
+    signal_monitoring_interval_seconds: int = (
+        300  # Intervalo entre verificações de sinais - 5 minutos
+    )
+    database_cleanup_interval_seconds: int = (
+        86400  # Intervalo para limpeza do banco (24h)
+    )
+
     # Configurações de Timezone
     celery_timezone: str = "UTC"
     celery_enable_utc: bool = True
 
-    # Configurações de Concorrência
-    celery_worker_count: int = 4  # Número de workers simultâneos
+    # Configurações de Concorrência - EM PROD COLOCAR 8 WORKERS E 4 TASK PER WORKER
+    celery_worker_count: int = (
+        4  # Número de workers (processos) simultâneos que vai executar
+    )
+    celery_tasks_per_worker: int = (
+        1  # Define quantas tarefas cada worker pode processar por vez
+    )
     celery_task_acknowledge_late: bool = True  # Confirmar task só após conclusão
-    celery_tasks_per_worker: int = 1  # Tasks por vez por worker
 
     # Configurações de Timeout (segundos)
-    celery_task_warning_timeout: int = 60  # 300 = 5 min - aviso de timeout
+    celery_task_warning_timeout: int = 300  # 300 = 5 min - aviso de timeout
     celery_task_force_kill_timeout: int = 600  # 10 min - força encerramento
 
     # ===============================================
@@ -133,6 +136,11 @@ class Settings(BaseSettings):
 
     # Limites da API - /rsi/multiple?symbols
     api_max_symbols_per_request: int = 200
+
+    # Configurações do Coin Curator - scripts/update_curated_coins.py
+    coin_curator_volume_period: str = "24h"  # 24h, 7d, 30d
+    coin_curator_min_market_cap: int = 50_000_000  # $100M
+    coin_curator_min_volume: int = 3_000_000  # $10M
 
     class Config:
         env_file = ".env"

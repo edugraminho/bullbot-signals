@@ -16,6 +16,7 @@ from src.core.models.signals import (
     SignalStrength,
 )
 from src.utils.logger import get_logger
+from src.utils.coin_curator import coin_curator
 
 logger = get_logger(__name__)
 
@@ -62,7 +63,7 @@ class RSIService:
         elif source.lower() == "mexc":
             return await self.get_rsi_from_mexc(symbol, interval, window)
         else:
-            logger.error(f"Fonte não suportada: {source}")
+            logger.error(f"❌Fonte não suportada: {source}")
             return None
 
     async def get_rsi_from_gate(
@@ -88,10 +89,10 @@ class RSIService:
                 return None
 
         except GateError as e:
-            logger.error(f"Erro da Gate.io para {symbol}: {e}")
+            logger.error(f"❌ Erro da Gate.io para {symbol}: {e}")
             return None
         except Exception as e:
-            logger.error(f"Erro inesperado ao buscar RSI para {symbol}: {e}")
+            logger.error(f"❌ Erro inesperado ao buscar RSI para {symbol}: {e}")
             return None
 
     async def get_rsi_from_mexc(
@@ -117,10 +118,10 @@ class RSIService:
                 return None
 
         except MEXCError as e:
-            logger.error(f"Erro da MEXC para {symbol}: {e}")
+            logger.error(f"❌ Erro da MEXC para {symbol}: {e}")
             return None
         except Exception as e:
-            logger.error(f"Erro inesperado ao buscar RSI MEXC para {symbol}: {e}")
+            logger.error(f"❌ Erro inesperado ao buscar RSI MEXC para {symbol}: {e}")
             return None
 
     async def get_rsi_from_binance(
@@ -146,10 +147,10 @@ class RSIService:
                 return None
 
         except BinanceError as e:
-            logger.error(f"Erro da Binance para {symbol}: {e}")
+            logger.error(f"❌ Erro da Binance para {symbol}: {e}")
             return None
         except Exception as e:
-            logger.error(f"Erro inesperado ao buscar RSI Binance para {symbol}: {e}")
+            logger.error(f"❌ Erro inesperado ao buscar RSI Binance para {symbol}: {e}")
             return None
 
     def calculate_rsi_from_ohlcv(
@@ -184,7 +185,7 @@ class RSIService:
                 return None
 
         except Exception as e:
-            logger.error(f"Erro ao calcular RSI para {symbol}: {e}")
+            logger.error(f"❌ Erro ao calcular RSI para {symbol}: {e}")
             return None
 
     async def get_multiple_rsi(
@@ -200,7 +201,7 @@ class RSIService:
                         rsi_data = await client.get_latest_rsi(symbol, interval, window)
                         results[symbol] = rsi_data
                     except GateError as e:
-                        logger.error(f"Erro ao buscar RSI para {symbol}: {e}")
+                        logger.error(f"❌ Erro ao buscar RSI para {symbol}: {e}")
                         results[symbol] = None
 
             # Log resultados
@@ -210,7 +211,7 @@ class RSIService:
             return results
 
         except Exception as e:
-            logger.error(f"Erro ao buscar RSI múltiplo: {e}")
+            logger.error(f"❌ Erro ao buscar RSI múltiplo: {e}")
             return {symbol: None for symbol in symbols}
 
     def analyze_rsi(self, rsi_data: RSIData) -> RSIAnalysis:
@@ -298,3 +299,15 @@ class RSIService:
             return rsi <= 35 or rsi >= 65
 
         return False
+
+    def get_curated_symbols(self, limit: int = 200) -> List[str]:
+        """
+        Retorna lista curada de símbolos para trading
+        """
+        return coin_curator.get_trading_symbols(limit)
+
+    def get_symbols_by_exchange(self, exchange: str) -> List[str]:
+        """
+        Retorna símbolos disponíveis em uma exchange específica
+        """
+        return coin_curator.get_coins_by_exchange(exchange)

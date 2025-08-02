@@ -87,7 +87,7 @@ class TelegramBot:
             await update.message.reply_text(welcome_text, parse_mode=ParseMode.HTML)
 
         except Exception as e:
-            logger.error(f"Erro no comando /start: {e}")
+            logger.error(f"❌ Erro no comando /start: {e}")
             await update.message.reply_text(
                 "❌ Erro interno. Tente novamente mais tarde."
             )
@@ -167,7 +167,7 @@ class TelegramBot:
             await update.message.reply_text(status_text, parse_mode=ParseMode.HTML)
 
         except Exception as e:
-            logger.error(f"Erro no comando /status: {e}")
+            logger.error(f"❌ Erro no comando /status: {e}")
             await update.message.reply_text(
                 "❌ Erro ao consultar status. Tente novamente."
             )
@@ -248,7 +248,7 @@ class TelegramBot:
             await update.message.reply_text(stop_text, parse_mode=ParseMode.HTML)
 
         except Exception as e:
-            logger.error(f"Erro no comando /stop: {e}")
+            logger.error(f"❌ Erro no comando /stop: {e}")
             await update.message.reply_text(
                 "❌ Erro ao desativar assinatura. Tente novamente."
             )
@@ -327,6 +327,6 @@ async def run_telegram_bot():
             logger.info("Bot interrompido pelo usuário")
             await bot.stop_polling()
         except Exception as e:
-            logger.error(f"Erro no bot: {e}")
+            logger.error(f"❌ Erro no bot: {e}")
             if bot.application:
                 await bot.stop_polling()

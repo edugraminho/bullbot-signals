@@ -135,7 +135,7 @@ class SignalFilter:
             return True
 
         except Exception as e:
-            logger.error(f"Erro no filtro de sinais para {symbol}: {e}")
+            logger.error(f"❌ Erro no filtro de sinais para {symbol}: {e}")
             # Em caso de erro, bloquear sinal por segurança
             return False
 
@@ -156,7 +156,7 @@ class SignalFilter:
             return (time.time() - last_time) < cooldown_duration
 
         except Exception as e:
-            logger.error(f"Erro ao verificar cooldown: {e}")
+            logger.error(f"❌ Erro ao verificar cooldown: {e}")
             return True  # Em caso de erro, assumir que está em cooldown
 
     async def _is_stronger_signal(self, symbol: str, analysis: RSIAnalysis) -> bool:
@@ -189,7 +189,7 @@ class SignalFilter:
             return False  # HOLD não precisa ser enviado
 
         except Exception as e:
-            logger.error(f"Erro ao verificar força do sinal: {e}")
+            logger.error(f"❌ Erro ao verificar força do sinal: {e}")
             return False
 
     async def _exceeded_daily_limits(
@@ -219,7 +219,7 @@ class SignalFilter:
             return False
 
         except Exception as e:
-            logger.error(f"Erro ao verificar limites diários: {e}")
+            logger.error(f"❌ Erro ao verificar limites diários: {e}")
             return True  # Em caso de erro, assumir que excedeu
 
     async def mark_signal_sent(self, symbol: str, analysis: RSIAnalysis):
@@ -253,7 +253,7 @@ class SignalFilter:
             logger.info(f"Contadores atualizados para {symbol}")
 
         except Exception as e:
-            logger.error(f"Erro ao marcar sinal enviado: {e}")
+            logger.error(f"❌ Erro ao marcar sinal enviado: {e}")
 
     async def get_signal_stats(self, symbol: str) -> dict:
         """Obter estatísticas de sinais para um símbolo"""
@@ -284,7 +284,7 @@ class SignalFilter:
             }
 
         except Exception as e:
-            logger.error(f"Erro ao obter estatísticas: {e}")
+            logger.error(f"❌ Erro ao obter estatísticas: {e}")
             return {"symbol": symbol, "error": str(e)}
 
 

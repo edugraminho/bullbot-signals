@@ -36,7 +36,7 @@ async def list_monitoring_configs(db: Session = Depends(get_db)):
         configs = db.query(MonitoringConfig).all()
         return configs
     except Exception as e:
-        logger.error(f"Erro ao listar configs: {e}")
+        logger.error(f"❌ Erro ao listar configs: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -76,7 +76,7 @@ async def create_monitoring_config(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Erro ao criar config: {e}")
+        logger.error(f"❌ Erro ao criar config: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -126,7 +126,7 @@ async def update_monitoring_config(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Erro ao atualizar config {config_id}: {e}")
+        logger.error(f"❌ Erro ao atualizar config {config_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -151,7 +151,7 @@ async def delete_monitoring_config(config_id: int, db: Session = Depends(get_db)
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Erro ao deletar config {config_id}: {e}")
+        logger.error(f"❌ Erro ao deletar config {config_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -169,7 +169,7 @@ async def list_telegram_subscriptions(db: Session = Depends(get_db)):
         subscriptions = db.query(TelegramSubscription).all()
         return subscriptions
     except Exception as e:
-        logger.error(f"Erro ao listar assinaturas: {e}")
+        logger.error(f"❌ Erro ao listar assinaturas: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -205,7 +205,7 @@ async def create_telegram_subscription(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Erro ao criar assinatura: {e}")
+        logger.error(f"❌ Erro ao criar assinatura: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -260,7 +260,7 @@ async def update_telegram_subscription(
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Erro ao atualizar assinatura {chat_id}: {e}")
+        logger.error(f"❌ Erro ao atualizar assinatura {chat_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -287,7 +287,7 @@ async def delete_telegram_subscription(chat_id: str, db: Session = Depends(get_d
         raise
     except Exception as e:
         db.rollback()
-        logger.error(f"Erro ao deletar assinatura {chat_id}: {e}")
+        logger.error(f"❌ Erro ao deletar assinatura {chat_id}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -335,5 +335,5 @@ async def get_system_status(db: Session = Depends(get_db)):
         )
 
     except Exception as e:
-        logger.error(f"Erro ao obter status: {e}")
+        logger.error(f"❌ Erro ao obter status: {e}")
         raise HTTPException(status_code=500, detail=str(e))

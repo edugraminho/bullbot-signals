@@ -191,7 +191,7 @@ class MEXCClient:
                 ohlcv_data = await self.get_ohlcv(symbol, interval, limit)
                 results[symbol] = ohlcv_data
             except MEXCError as e:
-                logger.error(f"Erro ao buscar OHLCV para {symbol}: {e}")
+                logger.error(f"❌ Erro ao buscar OHLCV para {symbol}: {e}")
                 results[symbol] = []
 
         return results
@@ -242,8 +242,8 @@ class MEXCClient:
                 return None
 
         except MEXCError as e:
-            logger.error(f"Erro da MEXC para {symbol}: {e}")
+            logger.error(f"❌ Erro da MEXC para {symbol}: {e}")
             return None
         except Exception as e:
-            logger.error(f"Erro ao calcular RSI MEXC para {symbol}: {e}")
+            logger.error(f"❌ Erro ao calcular RSI MEXC para {symbol}: {e}")
             return None

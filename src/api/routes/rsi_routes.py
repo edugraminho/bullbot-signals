@@ -56,7 +56,7 @@ async def get_rsi(
         )
 
     except Exception as e:
-        logger.error(f"Erro ao buscar RSI para {symbol}: {e}")
+        logger.error(f"❌ Erro ao buscar RSI para {symbol}: {e}")
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 
@@ -131,7 +131,7 @@ async def get_multiple_rsi(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Erro ao buscar RSI múltiplo: {e}")
+        logger.error(f"❌ Erro ao buscar RSI múltiplo: {e}")
         raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")
 
 
@@ -169,5 +169,79 @@ async def health_check():
         )
 
     except Exception as e:
-        logger.error(f"Health check falhou: {e}")
+        logger.error(f"❌Health check falhou: {e}")
         return HealthResponse(status="unhealthy", api="error", message=str(e))
+
+
+@router.get("/curated", response_model=MultipleRSIResponse)
+async def get_curated_rsi(
+    limit: int = Query(50, description="Número de moedas da lista curada"),
+    interval: str = Query(
+        "1d",
+        description="Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M",
+    ),
+    window: int = Query(14, description="RSI calculation window"),
+    source: str = Query(
+        "binance", description="Fonte dos dados: binance, gate ou mexc"
+    ),
+):
+    """
+    Busca RSI para lista curada de moedas (top por market cap)
+
+    Exemplo: /rsi/curated?limit=100&source=binance
+    """
+    try:
+        # Validar limite
+        if limit > settings.api_max_symbols_per_request:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Máximo {settings.api_max_symbols_per_request} símbolos por consulta",
+            )
+
+        # Buscar símbolos da lista curada
+        rsi_service = RSIService()
+        symbol_list = rsi_service.get_curated_symbols(limit)
+
+        if not symbol_list:
+            raise HTTPException(
+                status_code=404,
+                detail="Lista curada não encontrada. Execute o script de atualização primeiro.",
+            )
+
+        # Buscar RSI para cada símbolo
+        rsi_results = {}
+        for symbol in symbol_list:
+            rsi_data = await rsi_service.get_rsi(symbol, interval, window, source)
+            rsi_results[symbol] = rsi_data
+
+        # Processar resultados
+        results = {}
+        successful_count = 0
+
+        for symbol, rsi_data in rsi_results.items():
+            if rsi_data:
+                results[symbol] = RSIResponse(
+                    symbol=rsi_data.symbol.upper(),
+                    rsi_value=float(rsi_data.value),
+                    current_price=float(rsi_data.current_price),
+                    timestamp=rsi_data.timestamp.isoformat(),
+                    timespan=rsi_data.timespan,
+                    window=rsi_data.window,
+                    source=rsi_data.source,
+                    data_source=source,
+                )
+                successful_count += 1
+            else:
+                results[symbol] = None
+
+        return MultipleRSIResponse(
+            results=results,
+            successful_count=successful_count,
+            total_count=len(symbol_list),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Erro ao buscar RSI curado: {e}")
+        raise HTTPException(status_code=500, detail=f"Erro interno: {str(e)}")

@@ -25,4 +25,4 @@ EXPOSE 8000
 # CMD ["gunicorn", "src.api.main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000"]
 
 # DESENVOLVIMENTO - Fast reload: "--reload"
-CMD ["uvicorn", "src.api.main:app", "--host=0.0.0.0", "--port=8000"] 
+CMD ["uvicorn", "src.api.main:app", "--host=0.0.0.0", "--port=8000", "--reload"] 

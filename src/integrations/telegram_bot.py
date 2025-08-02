@@ -52,7 +52,7 @@ class TelegramClient:
                 logger.info(f"Sinal enviado para chat {chat_id}")
 
             except TelegramError as e:
-                logger.error(f"Erro ao enviar para chat {chat_id}: {e}")
+                logger.error(f"❌ Erro ao enviar para chat {chat_id}: {e}")
                 # Se chat não existe ou bot foi bloqueado, marcar como inativo
                 if (
                     "chat not found" in str(e).lower()
@@ -125,7 +125,7 @@ class TelegramClient:
             db.close()
 
         except Exception as e:
-            logger.error(f"Erro ao desativar assinatura {chat_id}: {e}")
+            logger.error(f"❌ Erro ao desativar assinatura {chat_id}: {e}")
 
     async def get_active_subscribers(
         self, symbol_filter: Optional[str] = None
@@ -159,7 +159,7 @@ class TelegramClient:
             return chat_ids
 
         except Exception as e:
-            logger.error(f"Erro ao obter assinantes: {e}")
+            logger.error(f"❌ Erro ao obter assinantes: {e}")
             return []
 
     async def test_connection(self) -> bool:
@@ -169,7 +169,7 @@ class TelegramClient:
             logger.info(f"Bot conectado: @{bot_info.username}")
             return True
         except Exception as e:
-            logger.error(f"Erro na conexão Telegram: {e}")
+            logger.error(f"❌ Erro na conexão Telegram: {e}")
             return False
 
 

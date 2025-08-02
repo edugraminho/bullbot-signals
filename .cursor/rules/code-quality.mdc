@@ -10,6 +10,7 @@
 ## Logging
 
 - **NÃO use ícones/emojis nos logs** - mantenha logs limpos e profissionais
+- **EXCEÇÃO:** Use ❌ apenas em logs de erro: `logger.error(f"❌ Erro ao conectar: {e}")`
 - Use `logging` padrão do Python
 - Configure níveis apropriados (DEBUG, INFO, WARNING, ERROR)
 - Inclua contexto relevante nas mensagens de log
@@ -45,11 +46,13 @@
 ## Containerização
 
 - **SEMPRE execute comandos Python em containers**, nunca no ambiente local
-- Use `docker-compose exec app` para comandos Python
-- Exemplo correto: `docker-compose exec app python -c "from src.api.main import app; print('✅ Aplicação carregada')"`
-- Exemplo ERRADO: `python -c "from src.api.main import app; print('✅ Aplicação carregada')"`
-- Para testes: `docker-compose exec app pytest`
-- Para linting: `docker-compose exec app ruff check .`
-- Para formatação: `docker-compose exec app ruff format .`
+- **A aplicação roda 100% em containers Docker**
+- Use `docker compose exec app` para comandos Python
+- Exemplo correto: `docker compose exec app python -c "from src.api.main import app; print('Aplicação carregada')"`
+- Exemplo ERRADO: `python -c "from src.api.main import app; print('Aplicação carregada')"`
+- Para testes: `docker compose exec app pytest`
+- Para linting: `docker compose exec app ruff check .`
+- Para formatação: `docker compose exec app ruff format .`
+- Para scripts: `docker compose exec app python scripts/update_curated_coins.py`
 alwaysApply: false
 ---

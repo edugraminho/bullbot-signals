@@ -72,7 +72,7 @@ def monitor_rsi_signals(self):
         }
 
     except Exception as e:
-        logger.error(f"Erro no monitoramento principal: {e}")
+        logger.error(f"❌ Erro no monitoramento principal: {e}")
         return {"status": "error", "error": str(e)}
 
 
@@ -116,7 +116,7 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
         }
 
     except Exception as e:
-        logger.error(f"Erro no batch {exchange}: {e}")
+        logger.error(f"❌ Erro no batch {exchange}: {e}")
 
         if self.request.retries < task_config.max_retries:
             logger.info(
@@ -200,7 +200,7 @@ def process_single_symbol(
             return {"status": "filtered", "symbol": symbol, "rsi_value": rsi_data.value}
 
     except Exception as e:
-        logger.error(f"Erro ao processar {symbol} na {exchange}: {e}")
+        logger.error(f"❌ Erro ao processar {symbol} na {exchange}: {e}")
         return {"status": "error", "symbol": symbol, "error": str(e)}
 
     finally:
@@ -227,7 +227,7 @@ def get_active_symbols() -> List[str]:
         return symbols
 
     except Exception as e:
-        logger.error(f"Erro ao obter símbolos: {e}")
+        logger.error(f"❌ Erro ao obter símbolos: {e}")
         return task_config.default_symbols
 
 
@@ -281,5 +281,5 @@ def cleanup_old_signals():
         }
 
     except Exception as e:
-        logger.error(f"Erro na limpeza: {e}")
+        logger.error(f"❌ Erro na limpeza: {e}")
         return {"status": "error", "error": str(e)}
