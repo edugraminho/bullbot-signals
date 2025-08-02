@@ -137,10 +137,53 @@ class Settings(BaseSettings):
     # Limites da API - /rsi/multiple?symbols
     api_max_symbols_per_request: int = 200
 
-    # Configurações do Coin Curator - scripts/update_curated_coins.py
-    coin_curator_volume_period: str = "24h"  # 24h, 7d, 30d
-    coin_curator_min_market_cap: int = 50_000_000  # $100M
-    coin_curator_min_volume: int = 3_000_000  # $10M
+    # Configurações do Trading Coins - src/utils/trading_coins.py
+    trading_coins_volume_period: str = "24h"  # 24h, 7d, 30d
+    trading_coins_min_market_cap: int = 50_000_000  # $50M
+    trading_coins_min_volume: int = 3_000_000  # $3M
+    trading_coins_update_interval_days: int = 7  # Atualizar lista a cada 7 dias
+
+    # Blacklist de moedas (stablecoins + problemáticas)
+    trading_coins_blacklist: List[str] = [
+        # Stablecoins
+        "USDT",
+        "USDC",
+        "BUSD",
+        "DAI",
+        "TUSD",
+        "FRAX",
+        "USDP",
+        "USDD",
+        "GUSD",
+        "LUSD",
+        "USDN",
+        "USDK",
+        "USDJ",
+        "USDE",
+        "USDS",
+        "USD1",
+        "BSC-USD",
+        "USDF",
+        "PYUSD",
+        "USDX",
+        "GHO",
+        "AUSD",
+        "SRUSD",
+        "DOLA",
+        "SUSDE",
+        "SUSDS",
+        "USDT0",
+        "FDUSD",
+        "USDG",
+        # Moedas problemáticas (não disponíveis nas exchanges)
+        "USDL",
+        "BITCOIN",
+        "REKT",
+        "MELANIA",
+        "ALCH",
+        "XPR",
+        "RPL",
+    ]
 
     class Config:
         env_file = ".env"

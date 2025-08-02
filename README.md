@@ -315,15 +315,33 @@ crypto-hunter/
 - Use `docker-compose exec app` para todos os comandos Python
 - Nunca execute Python diretamente no ambiente local
 
-### 📝 Exemplos de Comandos Corretos
-```bash
-# ✅ Correto
-docker-compose exec app python -c "from src.api.main import app; print('App loaded')"
-docker-compose exec app pytest
-docker-compose exec app ruff check .
 
-# ❌ ERRADO
-python -c "from src.api.main import app; print('App loaded')"
-pytest
-ruff check .
-```
+# Trading Coins - Sistema de Curação de Moedas
+
+## Visão Geral
+
+O sistema **Trading Coins** é responsável por curar e manter uma lista atualizada das melhores moedas para trading, baseado em critérios específicos como market cap, volume de negociação e disponibilidade nas exchanges suportadas.
+
+## Funcionalidades
+
+- **Busca automática** de dados da CoinGecko API
+- **Filtragem inteligente** baseada em critérios de trading
+- **Atualização automática** via Celery a cada 7 dias
+- **Suporte a múltiplas exchanges** (Binance, MEXC, Gate)
+- **Armazenamento em CSV e JSON** para fácil acesso
+
+## Critérios de Filtragem
+
+### Market Cap
+- Mínimo: $50M (configurável)
+- Foco em moedas com liquidez adequada
+
+### Volume de Negociação
+- Mínimo: $3M em 24h (configurável)
+- Suporte a períodos: 24h, 7d, 30d
+
+### Exclusões Automáticas
+- **Stablecoins**: USDT, USDC, BUSD, etc.
+- **Meme tokens**: Tokens baseados em memes
+- **Wrapped tokens**: Tokens embrulhados
+- **Governance tokens**: Tokens de governança

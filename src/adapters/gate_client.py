@@ -85,7 +85,7 @@ class GateClient:
             params["to"] = to_timestamp
 
         try:
-            logger.info(f"Buscando OHLCV para {symbol} com intervalo {interval}")
+            logger.debug(f"Buscando OHLCV para {symbol} com intervalo {interval}")
             response = await self.session.get(url, params=params)
             response.raise_for_status()
 
@@ -98,60 +98,32 @@ class GateClient:
 
             for item in data:
                 try:
-                    # Verificar se o item tem pelo menos 6 elementos (mínimo necessário)
-                    if len(item) < 6:
-                        logger.warning(
-                            f"Item OHLCV inválido (menos de 6 elementos): {item}"
+                    # Converter strings para valores numéricos
+                    timestamp = int(item[0]) / 1000  # Gate.io usa milissegundos
+                    volume_quote = float(item[1])  # Volume em quote currency
+                    close = float(item[2])
+                    high = float(item[3])
+                    low = float(item[4])
+                    open_price = float(item[5])
+                    volume_base = float(item[6])
+
+                    ohlcv_data.append(
+                        OHLCVData(
+                            symbol=symbol,
+                            timestamp=datetime.fromtimestamp(timestamp),
+                            open=Decimal(str(open_price)),
+                            high=Decimal(str(high)),
+                            low=Decimal(str(low)),
+                            close=Decimal(str(close)),
+                            volume=Decimal(str(volume_quote)),
+                            timespan=interval,
                         )
-                        continue
-
-                    # Extrair os 6 primeiros elementos (essenciais para OHLCV)
-                    (
-                        timestamp_str,
-                        volume_quote_str,  # Volume em moeda de cotação (ex: USDT)
-                        close_str,
-                        high_str,
-                        low_str,
-                        open_str,
-                    ) = item[:6]
-
-                    # Converter timestamp
-                    timestamp = datetime.fromtimestamp(int(timestamp_str))
-
-                    # Converter valores para Decimal
-                    open_val = Decimal(str(open_str))
-                    high_val = Decimal(str(high_str))
-                    low_val = Decimal(str(low_str))
-                    close_val = Decimal(str(close_str))
-                    volume_val = Decimal(str(volume_quote_str))
-
-                    # Validar que os valores são números válidos
-                    for val in [open_val, high_val, low_val, close_val, volume_val]:
-                        if val.is_nan() or val.is_infinite():
-                            raise ValueError(f"Valor inválido: {val}")
-
-                    ohlcv = OHLCVData(
-                        symbol=symbol.replace(
-                            "_", ""
-                        ),  # Remove underscore para padronizar
-                        timestamp=timestamp,
-                        open=open_val,
-                        high=high_val,
-                        low=low_val,
-                        close=close_val,
-                        volume=volume_val,
-                        timespan=interval,
                     )
-                    ohlcv_data.append(ohlcv)
-
-                except (ValueError, TypeError, IndexError) as e:
-                    logger.warning(f"Erro ao processar item OHLCV: {e}, item: {item}")
+                except (ValueError, IndexError) as e:
+                    logger.warning(f"Erro ao processar item OHLCV: {e}")
                     continue
 
-            # Ordenar por timestamp (mais antigo primeiro)
-            ohlcv_data.sort(key=lambda x: x.timestamp)
-
-            logger.info(
+            logger.debug(
                 f"OHLCV obtido com sucesso: {len(ohlcv_data)} valores para {symbol}"
             )
             return ohlcv_data

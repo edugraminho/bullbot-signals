@@ -16,7 +16,7 @@ from src.core.models.signals import (
     SignalStrength,
 )
 from src.utils.logger import get_logger
-from src.utils.coin_curator import coin_curator
+from src.utils.trading_coins import trading_coins
 
 logger = get_logger(__name__)
 
@@ -44,26 +44,15 @@ class RSIService:
         window: int = 14,
         source: str = "binance",
     ) -> Optional[RSIData]:
-        """
-        Busca RSI de uma fonte específica
-
-        Args:
-            symbol: Símbolo da crypto (BTC, ETH, etc.)
-            interval: Intervalo dos dados
-            window: Janela de cálculo RSI
-            source: Fonte dos dados ("binance" ou "gate")
-
-        Returns:
-            RSIData calculado ou None se não conseguir
-        """
+        """Busca RSI de uma exchange específica"""
         if source.lower() == "binance":
             return await self.get_rsi_from_binance(symbol, interval, window)
-        elif source.lower() == "gate":
-            return await self.get_rsi_from_gate(symbol, interval, window)
         elif source.lower() == "mexc":
             return await self.get_rsi_from_mexc(symbol, interval, window)
+        elif source.lower() == "gate":
+            return await self.get_rsi_from_gate(symbol, interval, window)
         else:
-            logger.error(f"❌Fonte não suportada: {source}")
+            logger.error(f"❌ Exchange não suportada: {source}")
             return None
 
     async def get_rsi_from_gate(
@@ -82,7 +71,7 @@ class RSIService:
                 rsi_data = await client.get_latest_rsi(symbol, interval, window)
 
             if rsi_data:
-                logger.info(f"RSI calculado para {symbol}: {rsi_data.value}")
+                logger.debug(f"RSI calculado para {symbol}: {rsi_data.value}")
                 return rsi_data
             else:
                 logger.warning(f"Nenhum dado RSI calculado para {symbol}")
@@ -178,7 +167,7 @@ class RSIService:
             )
 
             if rsi_data:
-                logger.info(f"RSI calculado para {symbol}: {rsi_data.value}")
+                logger.debug(f"RSI calculado para {symbol}: {rsi_data.value}")
                 return rsi_data
             else:
                 logger.warning(f"Nenhum dado RSI calculado para {symbol}")
@@ -304,10 +293,10 @@ class RSIService:
         """
         Retorna lista curada de símbolos para trading
         """
-        return coin_curator.get_trading_symbols(limit)
+        return trading_coins.get_trading_symbols(limit)
 
     def get_symbols_by_exchange(self, exchange: str) -> List[str]:
         """
         Retorna símbolos disponíveis em uma exchange específica
         """
-        return coin_curator.get_coins_by_exchange(exchange)
+        return trading_coins.get_coins_by_exchange(exchange)

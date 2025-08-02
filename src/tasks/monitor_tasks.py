@@ -3,6 +3,7 @@ Tasks principais de monitoramento RSI
 """
 
 import asyncio
+import time
 from typing import List
 from celery import group
 from src.tasks.celery_app import celery_app
@@ -13,9 +14,10 @@ from src.database.models import MonitoringConfig, SignalHistory
 from src.database.connection import SessionLocal
 from src.utils.logger import get_logger
 from src.utils.config import settings
+from src.utils.trading_coins import trading_coins
 from datetime import datetime, timedelta, timezone
 
-logger = get_logger(__name__)
+logger = get_logger(__name__, level="INFO")
 
 
 class MonitorTaskConfig:
@@ -35,12 +37,58 @@ task_config = MonitorTaskConfig()
 
 
 @celery_app.task(bind=True)
+def update_trading_coins(self):
+    """
+    Task para atualizar lista de trading coins - executa a cada 7 dias
+    """
+    try:
+        logger.info("Iniciando atualização da lista de trading coins")
+
+        # Executar atualização
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        try:
+            coins = loop.run_until_complete(trading_coins.update_trading_list())
+
+            if coins:
+                logger.info(
+                    f"Lista de trading coins atualizada com {len(coins)} moedas"
+                )
+
+                return {
+                    "status": "success",
+                    "total_coins": len(coins),
+                    "message": f"Lista atualizada com {len(coins)} moedas",
+                }
+            else:
+                logger.error("Falha ao atualizar lista de trading coins")
+                return {"status": "error", "message": "Falha ao atualizar lista"}
+
+        finally:
+            loop.close()
+
+    except Exception as e:
+        logger.error(f"❌ Erro na atualização de trading coins: {e}")
+
+        if self.request.retries < task_config.max_retries:
+            logger.info(
+                f"Reagendando atualização de trading coins (tentativa {self.request.retries + 1})"
+            )
+            raise self.retry(countdown=task_config.retry_countdown, exc=e)
+
+        return {"status": "error", "error": str(e)}
+
+
+@celery_app.task(bind=True)
 def monitor_rsi_signals(self):
     """
     Task principal de monitoramento - executa a cada 5 minutos (config no celery_app.py)
     """
+    cycle_start_time = time.time()
+
     try:
-        logger.info("Iniciando monitoramento de sinais RSI")
+        logger.info("🚀 Iniciando ciclo de monitoramento RSI")
 
         # Obter configuração ativa
         symbols = get_active_symbols()
@@ -60,8 +108,10 @@ def monitor_rsi_signals(self):
         # Executar em paralelo
         result = job_group.apply_async()
 
+        cycle_duration = time.time() - cycle_start_time
         logger.info(
-            f"Monitoramento iniciado para {len(symbols)} símbolos em {len(symbol_batches)} exchanges"
+            f"✅ Ciclo iniciado: {len(symbols)} símbolos em {len(symbol_batches)} exchanges "
+            f"(inicialização: {cycle_duration:.2f}s)"
         )
 
         return {
@@ -69,10 +119,14 @@ def monitor_rsi_signals(self):
             "total_symbols": len(symbols),
             "batches": len(symbol_batches),
             "job_id": result.id,
+            "cycle_start_time": cycle_start_time,
         }
 
     except Exception as e:
-        logger.error(f"❌ Erro no monitoramento principal: {e}")
+        cycle_duration = time.time() - cycle_start_time
+        logger.error(
+            f"❌ Erro no monitoramento principal: {e} (ciclo: {cycle_duration:.2f}s)"
+        )
         return {"status": "error", "error": str(e)}
 
 
@@ -85,14 +139,22 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
         exchange: Nome da exchange (binance, gate, mexc)
         symbols: Lista de símbolos para processar
     """
+    batch_start_time = time.time()
+
     try:
-        logger.info(f"Processando {len(symbols)} símbolos na {exchange}")
+        logger.info(f"🔄 Processando {len(symbols)} símbolos na {exchange}")
 
         # Processar cada símbolo
         results = []
         rsi_service = RSIService()
+        successful = 0
+        filtered = 0
+        errors = 0
+        no_data = 0
 
-        for symbol in symbols:
+        for i, symbol in enumerate(symbols, 1):
+            symbol_start_time = time.time()
+
             result = process_single_symbol(
                 symbol=symbol,
                 exchange=exchange,
@@ -100,27 +162,56 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
                 rsi_window=task_config.rsi_window,
                 rsi_timeframe=task_config.rsi_timeframe,
             )
+
+            # Contar estatísticas
+            if result.get("status") == "signal_sent":
+                successful += 1
+            elif result.get("status") == "filtered":
+                filtered += 1
+            elif result.get("status") == "no_data":
+                no_data += 1
+            else:
+                errors += 1
+
             results.append(result)
 
-        # Estatísticas
-        successful = sum(1 for r in results if r.get("status") == "processed")
+            # Log de progresso a cada 10 símbolos
+            if i % 10 == 0 or i == len(symbols):
+                symbol_duration = time.time() - symbol_start_time
+                logger.info(
+                    f"📊 {exchange}: {i}/{len(symbols)} símbolos processados "
+                    f"({symbol_duration:.2f}s/símbolo)"
+                )
 
-        logger.info(f"Batch {exchange} concluído: {successful}/{len(symbols)} sucessos")
+        batch_duration = time.time() - batch_start_time
+        avg_time_per_symbol = batch_duration / len(symbols) if symbols else 0
+
+        logger.info(
+            f"✅ Batch {exchange} concluído: {successful}/{len(symbols)} sucessos "
+            f"({batch_duration:.2f}s total, {avg_time_per_symbol:.2f}s/moeda)"
+        )
 
         return {
             "status": "completed",
             "exchange": exchange,
             "total": len(symbols),
             "successful": successful,
-            "results": results,
+            "filtered": filtered,
+            "errors": errors,
+            "no_data": no_data,
+            "duration": batch_duration,
+            "avg_time_per_symbol": avg_time_per_symbol,
         }
 
     except Exception as e:
-        logger.error(f"❌ Erro no batch {exchange}: {e}")
+        batch_duration = time.time() - batch_start_time
+        logger.error(
+            f"❌ Erro no batch {exchange}: {e} (duração: {batch_duration:.2f}s)"
+        )
 
         if self.request.retries < task_config.max_retries:
             logger.info(
-                f"Reagendando batch {exchange} (tentativa {self.request.retries + 1})"
+                f"🔄 Reagendando batch {exchange} (tentativa {self.request.retries + 1})"
             )
             raise self.retry(countdown=task_config.retry_countdown, exc=e)
 
@@ -155,6 +246,10 @@ def process_single_symbol(
         )
 
         if not rsi_data:
+            # Moeda não encontrada - remover exchange da lista
+            from src.utils.trading_coins import trading_coins
+
+            trading_coins.remove_exchange_from_coin(symbol, exchange)
             return {"status": "no_data", "symbol": symbol, "exchange": exchange}
 
         # Analisar RSI
@@ -186,7 +281,8 @@ def process_single_symbol(
             loop.run_until_complete(signal_filter.mark_signal_sent(symbol, analysis))
 
             logger.info(
-                f"Sinal enviado para {symbol}: {analysis.signal.signal_type.value}"
+                f"📡 Sinal enviado para {symbol}: {analysis.signal.signal_type.value} "
+                f"(RSI: {rsi_data.value:.2f})"
             )
 
             return {
@@ -217,17 +313,20 @@ def get_active_symbols() -> List[str]:
         )
 
         if config and config.symbols and len(config.symbols) > 0:
+            # Usar símbolos da configuração do banco
             symbols = config.symbols
+            logger.info(f"📋 Usando {len(symbols)} símbolos da configuração do banco")
         else:
-            # Usar lista padrão se não há configuração ou lista vazia
-            symbols = task_config.default_symbols
+            # Usar lista de trading coins se não há configuração ou lista vazia
+            symbols = trading_coins.get_trading_symbols(limit=500)
+            logger.info(f"📋 Usando {len(symbols)} símbolos da lista de trading coins")
 
         db.close()
-        logger.info(f"Monitorando {len(symbols)} símbolos")
         return symbols
 
     except Exception as e:
         logger.error(f"❌ Erro ao obter símbolos: {e}")
+        # Fallback para lista padrão em caso de erro
         return task_config.default_symbols
 
 
@@ -255,6 +354,8 @@ def distribute_symbols_by_exchange(symbols: List[str]) -> dict:
 @celery_app.task
 def cleanup_old_signals():
     """Task diária para limpeza de dados antigos"""
+    cleanup_start_time = time.time()
+
     try:
         db = SessionLocal()
 
@@ -272,14 +373,19 @@ def cleanup_old_signals():
         db.commit()
         db.close()
 
-        logger.info(f"Limpeza concluída: {deleted_count} registros removidos")
+        cleanup_duration = time.time() - cleanup_start_time
+        logger.info(
+            f"🧹 Limpeza concluída: {deleted_count} registros removidos ({cleanup_duration:.2f}s)"
+        )
 
         return {
             "status": "completed",
             "deleted_count": deleted_count,
             "cutoff_date": cutoff_date.isoformat(),
+            "duration": cleanup_duration,
         }
 
     except Exception as e:
-        logger.error(f"❌ Erro na limpeza: {e}")
+        cleanup_duration = time.time() - cleanup_start_time
+        logger.error(f"❌ Erro na limpeza: {e} (duração: {cleanup_duration:.2f}s)")
         return {"status": "error", "error": str(e)}

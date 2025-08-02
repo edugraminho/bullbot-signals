@@ -83,77 +83,46 @@ class MEXCClient:
             if to_timestamp:
                 params["end"] = to_timestamp
 
-            logger.info(f"Buscando OHLCV para {symbol} com intervalo {interval}")
-            logger.info(f"URL: {url} com parâmetros: {params}")
+            logger.debug(f"Buscando OHLCV para {symbol} com intervalo {interval}")
             response = await self.session.get(url, params=params)
             response.raise_for_status()
 
             data = response.json()
 
-            if data:
-                logger.info(f"Primeiros 3 itens da MEXC (raw): {data[:3]}")
-
-            # API spot da MEXC retorna array diretamente (não tem wrapper success/data)
-            kline_data = data
-
-            # MEXC spot retorna array de arrays com 12 elementos (igual Binance):
-            # [openTime, open, high, low, close, volume, closeTime, quoteAssetVolume, numberOfTrades, takerBuyBaseAssetVolume, takerBuyQuoteAssetVolume, ignore]
+            # MEXC retorna array de arrays com 6 elementos:
+            # [timestamp, open, high, low, close, volume]
             ohlcv_data = []
 
-            for item in kline_data:
+            for item in data:
                 try:
-                    # Verificar se o item tem pelo menos 6 elementos
-                    if len(item) < 6:
-                        logger.warning(f"Item OHLCV inválido: {item}")
-                        continue
-
-                    # Extrair dados essenciais
-                    (
-                        timestamp_ms,
-                        open_price,
-                        high_price,
-                        low_price,
-                        close_price,
-                        volume,
-                    ) = item[:6]
-
-                    # Converter timestamp (MEXC usa milissegundos)
-                    timestamp = datetime.fromtimestamp(int(timestamp_ms) / 1000)
+                    # MEXC retorna timestamp em milissegundos (13 dígitos)
+                    timestamp_raw = int(item[0])
+                    timestamp = datetime.fromtimestamp(timestamp_raw / 1000)
 
                     # Converter valores para Decimal
-                    open_val = Decimal(str(open_price))
-                    high_val = Decimal(str(high_price))
-                    low_val = Decimal(str(low_price))
-                    close_val = Decimal(str(close_price))
-                    volume_val = Decimal(str(volume))
+                    open_val = Decimal(str(item[1]))
+                    high_val = Decimal(str(item[2]))
+                    low_val = Decimal(str(item[3]))
+                    close_val = Decimal(str(item[4]))
+                    volume_val = Decimal(str(item[5]))
 
-                    # Criar objeto OHLCVData
-                    ohlcv_item = OHLCVData(
-                        symbol=symbol,
-                        timestamp=timestamp,
-                        open=open_val,
-                        high=high_val,
-                        low=low_val,
-                        close=close_val,
-                        volume=volume_val,
-                        timespan=interval,
+                    ohlcv_data.append(
+                        OHLCVData(
+                            symbol=symbol,
+                            timestamp=timestamp,
+                            open=open_val,
+                            high=high_val,
+                            low=low_val,
+                            close=close_val,
+                            volume=volume_val,
+                            timespan=interval,
+                        )
                     )
-
-                    ohlcv_data.append(ohlcv_item)
-
-                except (ValueError, TypeError, IndexError) as e:
-                    logger.warning(f"Erro ao processar item OHLCV: {e}, item: {item}")
+                except (ValueError, IndexError, OSError) as e:
+                    logger.warning(f"Erro ao processar item OHLCV: {e}")
                     continue
 
-            # Ordenar por timestamp (mais antigo primeiro)
-            ohlcv_data.sort(key=lambda x: x.timestamp)
-
-            # Debug: mostrar últimos preços de fechamento
-            if ohlcv_data:
-                closes = [float(item.close) for item in ohlcv_data[-5:]]
-                logger.info(f"Últimos 5 preços de fechamento: {closes}")
-
-            logger.info(
+            logger.debug(
                 f"OHLCV obtido com sucesso: {len(ohlcv_data)} valores para {symbol}"
             )
             return ohlcv_data

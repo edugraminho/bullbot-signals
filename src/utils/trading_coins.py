@@ -1,5 +1,5 @@
 """
-Coin Curator - Sistema para curar lista das melhores moedas para trading
+Trading Coins - Sistema para curar lista das melhores moedas para trading
 """
 
 import asyncio
@@ -54,57 +54,23 @@ class CoinData:
         }
 
 
-class CoinCurator:
+class TradingCoins:
     """Sistema para curar lista das melhores moedas para trading"""
 
     def __init__(self):
         self.coingecko_api = "https://api.coingecko.com/api/v3"
-        self.stablecoins = {
-            "USDT",
-            "USDC",
-            "BUSD",
-            "DAI",
-            "TUSD",
-            "FRAX",
-            "USDP",
-            "USDD",
-            "GUSD",
-            "LUSD",
-            "USDN",
-            "USDK",
-            "USDJ",
-            "USDK",
-            "USDN",
-            "USDK",
-            "USDE",
-            "USDS",
-            "USD1",
-            "BSC-USD",
-            "USDF",
-            "PYUSD",
-            "USDX",
-            "FRAX",
-            "GHO",
-            "AUSD",
-            "SRUSD",
-            "DOLA",
-            "SUSDE",
-            "SUSDS",
-            "USDT0",
-            "FDUSD",
-        }
         self.excluded_categories = {
             "stablecoins",
             "meme-token",
             "wrapped-tokens",
             "governance",
         }
-        self.csv_path = "data/curated_coins.csv"
-        self.json_path = "data/curated_coins.json"
+        self.csv_path = "data/trading_coins.csv"
+        self.json_path = "data/trading_coins.json"
 
         # Configurações de volume
-        self.volume_period = settings.coin_curator_volume_period
-        self.min_volume_threshold = settings.coin_curator_min_volume
+        self.volume_period = settings.trading_coins_volume_period
+        self.min_volume_threshold = settings.trading_coins_min_volume
 
         # Criar diretório se não existir
         os.makedirs("data", exist_ok=True)
@@ -178,20 +144,20 @@ class CoinCurator:
         """Filtra moedas baseado nos critérios de trading"""
         filtered_coins = []
         total_coins = len(coins_data)
-        stablecoins_removed = 0
+        blacklist_removed = 0
         categories_removed = 0
         market_cap_removed = 0
         volume_removed = 0
 
         logger.info(f"Iniciando filtragem de {total_coins} moedas...")
         logger.info(
-            f"Critérios: Market Cap > ${settings.coin_curator_min_market_cap:,}, Volume > ${self.get_min_volume_for_period(volume_period):,}"
+            f"Critérios: Market Cap > ${settings.trading_coins_min_market_cap:,}, Volume > ${self.get_min_volume_for_period(volume_period):,}"
         )
 
         for coin in coins_data:
-            # Pular stablecoins
-            if coin["symbol"].upper() in self.stablecoins:
-                stablecoins_removed += 1
+            # Pular moedas da blacklist
+            if coin["symbol"].upper() in settings.trading_coins_blacklist:
+                blacklist_removed += 1
                 continue
 
             # Pular categorias indesejadas
@@ -206,7 +172,7 @@ class CoinCurator:
             volume_24h = coin.get("total_volume", 0)
 
             # Market cap mínimo
-            if market_cap < settings.coin_curator_min_market_cap:
+            if market_cap < settings.trading_coins_min_market_cap:
                 market_cap_removed += 1
                 continue
 
@@ -240,7 +206,7 @@ class CoinCurator:
 
         logger.info(f"Filtragem concluída:")
         logger.info(f"  - Total inicial: {total_coins}")
-        logger.info(f"  - Stablecoins removidas: {stablecoins_removed}")
+        logger.info(f"  - Moedas da blacklist removidas: {blacklist_removed}")
         logger.info(f"  - Categorias removidas: {categories_removed}")
         logger.info(f"  - Market cap baixo: {market_cap_removed}")
         logger.info(f"  - Volume baixo: {volume_removed}")
@@ -337,11 +303,11 @@ class CoinCurator:
             logger.error(f"❌ Erro ao carregar CSV: {e}")
             return []
 
-    async def update_curated_list(self) -> List[CoinData]:
-        """Atualiza a lista curada de moedas"""
-        volume_period = settings.coin_curator_volume_period
+    async def update_trading_list(self) -> List[CoinData]:
+        """Atualiza a lista de trading coins"""
+        volume_period = settings.trading_coins_volume_period
         logger.info(
-            f"Iniciando atualização da lista curada (volume: {volume_period})..."
+            f"Iniciando atualização da lista de trading coins (volume: {volume_period})..."
         )
 
         # Buscar dados da CoinGecko
@@ -359,7 +325,9 @@ class CoinCurator:
         self.save_to_csv(filtered_coins)
         self.save_to_json(filtered_coins)
 
-        logger.info(f"Lista curada atualizada com {len(filtered_coins)} moedas")
+        logger.info(
+            f"Lista de trading coins atualizada com {len(filtered_coins)} moedas"
+        )
         return filtered_coins
 
     def get_trading_symbols(self, limit: int = 200) -> List[str]:
@@ -372,6 +340,20 @@ class CoinCurator:
         coins = self.load_from_csv()
         return [coin.symbol for coin in coins if exchange in coin.exchanges]
 
+    def remove_exchange_from_coin(self, symbol: str, exchange: str) -> None:
+        """Remove uma exchange da lista de exchanges de uma moeda"""
+        try:
+            coins = self.load_from_csv()
+
+            for coin in coins:
+                if coin.symbol.upper() == symbol.upper() and exchange in coin.exchanges:
+                    coin.exchanges.remove(exchange)
+                    self.save_to_csv(coins)
+                    break
+
+        except Exception as e:
+            logger.error(f"Erro ao remover {exchange} de {symbol}: {e}")
+
 
 # Instância global
-coin_curator = CoinCurator()
+trading_coins = TradingCoins()

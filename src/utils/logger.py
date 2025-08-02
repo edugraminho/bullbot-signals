@@ -6,7 +6,7 @@ import logging
 import sys
 
 
-def get_logger(name: str, level: str = "INFO") -> logging.Logger:
+def get_logger(name: str, level: str = "WARNING") -> logging.Logger:
     """
     Cria um logger configurado para o projeto
 
@@ -21,7 +21,7 @@ def get_logger(name: str, level: str = "INFO") -> logging.Logger:
         return logger
 
     # Configurar nível
-    log_level = getattr(logging, level.upper(), logging.INFO)
+    log_level = getattr(logging, level.upper(), logging.WARNING)
     logger.setLevel(log_level)
 
     # Criar handler para console

@@ -86,80 +86,45 @@ class BinanceClient:
             params["endTime"] = to_timestamp
 
         try:
-            logger.info(f"Buscando OHLCV para {symbol} com intervalo {interval}")
-            logger.info(f"URL: {url} com parâmetros: {params}")
+            logger.debug(f"Buscando OHLCV para {symbol} com intervalo {interval}")
             response = await self.session.get(url, params=params)
             response.raise_for_status()
 
             data = response.json()
 
-            # Debug: mostrar dados brutos da Binance
-            if data:
-                logger.info(f"Primeiros 3 itens da Binance (raw): {data[:3]}")
-
-            # Binance retorna array de arrays com 12 elementos:
-            # [openTime, open, high, low, close, volume, closeTime, quoteAssetVolume, numberOfTrades, takerBuyBaseAssetVolume, takerBuyQuoteAssetVolume, ignore]
+            # Binance retorna array de arrays com 6 elementos:
+            # [Open time, Open, High, Low, Close, Volume, Close time, Quote asset volume, Number of trades, Taker buy base asset volume, Taker buy quote asset volume, Ignore]
             ohlcv_data = []
 
             for item in data:
                 try:
-                    # Verificar se o item tem pelo menos 6 elementos (essenciais)
-                    if len(item) < 6:
-                        logger.warning(f"Item OHLCV inválido: {item}")
-                        continue
-
-                    # Extrair dados essenciais
-                    (
-                        open_time,
-                        open_price,
-                        high_price,
-                        low_price,
-                        close_price,
-                        volume,
-                    ) = item[:6]
-
                     # Converter timestamp (Binance usa milissegundos)
-                    timestamp = datetime.fromtimestamp(int(open_time) / 1000)
+                    timestamp = datetime.fromtimestamp(int(item[0]) / 1000)
 
                     # Converter valores para Decimal
-                    open_val = Decimal(str(open_price))
-                    high_val = Decimal(str(high_price))
-                    low_val = Decimal(str(low_price))
-                    close_val = Decimal(str(close_price))
-                    volume_val = Decimal(str(volume))
+                    open_val = Decimal(str(item[1]))
+                    high_val = Decimal(str(item[2]))
+                    low_val = Decimal(str(item[3]))
+                    close_val = Decimal(str(item[4]))
+                    volume_val = Decimal(str(item[5]))
 
-                    # Validar que os valores são números válidos
-                    for val in [open_val, high_val, low_val, close_val, volume_val]:
-                        if val.is_nan() or val.is_infinite():
-                            raise ValueError(f"Valor inválido: {val}")
-
-                    ohlcv = OHLCVData(
-                        symbol=symbol,
-                        timestamp=timestamp,
-                        open=open_val,
-                        high=high_val,
-                        low=low_val,
-                        close=close_val,
-                        volume=volume_val,
-                        timespan=interval,
+                    ohlcv_data.append(
+                        OHLCVData(
+                            symbol=symbol,
+                            timestamp=timestamp,
+                            open=open_val,
+                            high=high_val,
+                            low=low_val,
+                            close=close_val,
+                            volume=volume_val,
+                            timespan=interval,
+                        )
                     )
-                    ohlcv_data.append(ohlcv)
-
-                except (ValueError, TypeError, IndexError) as e:
-                    logger.warning(f"Erro ao processar item OHLCV: {e}, item: {item}")
+                except (ValueError, IndexError) as e:
+                    logger.warning(f"Erro ao processar item OHLCV: {e}")
                     continue
 
-            # Ordenar por timestamp (mais antigo primeiro)
-            ohlcv_data.sort(key=lambda x: x.timestamp)
-
-            # Debug: mostrar últimos preços de fechamento
-            if ohlcv_data:
-                closes = [float(item.close) for item in ohlcv_data[-5:]]
-                logger.info(f"Últimos 5 preços de fechamento: {closes}")
-
-            logger.info(
-                f"OHLCV obtido com sucesso: {len(ohlcv_data)} valores para {symbol}"
-            )
+            logger.debug(f"OHLCV obtido com sucesso: {len(ohlcv_data)} valores para {symbol}")
             return ohlcv_data
 
         except httpx.HTTPError as e:

@@ -98,7 +98,8 @@ class CeleryStatusResponse(BaseModel):
     """Schema de resposta para status do Celery"""
 
     active_workers: int
-    scheduled_tasks: int
+    total_tasks: int
+    completed_tasks: int
     failed_tasks: int
     monitoring_task_last_run: Optional[datetime]
     monitoring_task_next_run: Optional[datetime]

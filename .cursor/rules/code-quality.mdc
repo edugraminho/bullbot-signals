@@ -53,6 +53,5 @@
 - Para testes: `docker compose exec app pytest`
 - Para linting: `docker compose exec app ruff check .`
 - Para formatação: `docker compose exec app ruff format .`
-- Para scripts: `docker compose exec app python scripts/update_curated_coins.py`
 alwaysApply: false
 ---

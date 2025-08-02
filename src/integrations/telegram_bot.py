@@ -147,8 +147,11 @@ class TelegramClient:
 
             # Filtrar por símbolo se especificado
             if symbol_filter:
+                # Verificar se symbols_filter não é None e contém o símbolo
                 query = query.filter(
-                    TelegramSubscription.symbols_filter.contains([symbol_filter])
+                    TelegramSubscription.symbols_filter.isnot(None)
+                ).filter(
+                    TelegramSubscription.symbols_filter.any(symbol_filter)
                 )
 
             subscriptions = query.all()

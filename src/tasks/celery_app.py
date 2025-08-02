@@ -3,6 +3,7 @@ Configuração principal do Celery
 """
 
 import os
+import logging
 from celery import Celery
 from src.utils.config import settings
 
@@ -45,6 +46,12 @@ celery_app.conf.update(
             "task": "src.tasks.monitor_tasks.cleanup_old_signals",
             "schedule": float(settings.database_cleanup_interval_seconds),
         },
+        "update-trading-coins": {
+            "task": "src.tasks.monitor_tasks.update_trading_coins",
+            "schedule": float(
+                settings.trading_coins_update_interval_days * 24 * 60 * 60
+            ),
+        },
     },
 )
 
@@ -53,3 +60,12 @@ celery_app.conf.worker_log_format = (
     "[%(asctime)s: %(levelname)s/%(processName)s] %(message)s"
 )
 celery_app.conf.worker_task_log_format = "[%(asctime)s: %(levelname)s/%(processName)s][%(task_name)s(%(task_id)s)] %(message)s"
+
+# Configurações para reduzir logs verbosos
+celery_app.conf.worker_redirect_stdouts = False
+celery_app.conf.worker_redirect_stdouts_level = "WARNING"
+
+# Configurar logging para evitar logs duplicados
+logging.getLogger("celery.worker").setLevel(logging.WARNING)
+logging.getLogger("celery.task").setLevel(logging.WARNING)
+logging.getLogger("celery.worker.control").setLevel(logging.WARNING)

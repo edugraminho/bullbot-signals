@@ -608,6 +608,62 @@
                 }
             }
         },
+        "/admin/trading-coins": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get Trading Coins",
+                "description": "Retorna lista de moedas para trading do CSV\n\nExemplo: /admin/trading-coins?exchange=binance&limit=50",
+                "operationId": "get_trading_coins_admin_trading_coins_get",
+                "parameters": [
+                    {
+                        "name": "exchange",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "string",
+                            "description": "Filtrar por exchange (binance, gate, mexc)",
+                            "title": "Exchange"
+                        },
+                        "description": "Filtrar por exchange (binance, gate, mexc)"
+                    },
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "description": "Limite de moedas a retornar",
+                            "title": "Limit"
+                        },
+                        "description": "Limite de moedas a retornar"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/CuratedCoinsResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/debug/celery-status": {
             "get": {
                 "tags": [
@@ -791,26 +847,6 @@
                 }
             }
         },
-        "/debug/test-telegram-message": {
-            "post": {
-                "tags": [
-                    "Debug"
-                ],
-                "summary": "Test Telegram Message",
-                "description": "Testar envio de mensagem via Telegram",
-                "operationId": "test_telegram_message_debug_test_telegram_message_post",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/": {
             "get": {
                 "summary": "Root",
@@ -880,6 +916,97 @@
                 ],
                 "title": "CeleryStatusResponse",
                 "description": "Schema de resposta para status do Celery"
+            },
+            "CuratedCoinResponse": {
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "title": "Symbol"
+                    },
+                    "name": {
+                        "type": "string",
+                        "title": "Name"
+                    },
+                    "market_cap": {
+                        "type": "number",
+                        "title": "Market Cap"
+                    },
+                    "volume_24h": {
+                        "type": "number",
+                        "title": "Volume 24H"
+                    },
+                    "price": {
+                        "type": "number",
+                        "title": "Price"
+                    },
+                    "exchanges": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Exchanges"
+                    },
+                    "ranking": {
+                        "type": "integer",
+                        "title": "Ranking"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "symbol",
+                    "name",
+                    "market_cap",
+                    "volume_24h",
+                    "price",
+                    "exchanges",
+                    "ranking"
+                ],
+                "title": "CuratedCoinResponse",
+                "description": "Schema de resposta para moeda curada"
+            },
+            "CuratedCoinsResponse": {
+                "properties": {
+                    "coins": {
+                        "items": {
+                            "$ref": "#/components/schemas/CuratedCoinResponse"
+                        },
+                        "type": "array",
+                        "title": "Coins"
+                    },
+                    "total_count": {
+                        "type": "integer",
+                        "title": "Total Count"
+                    },
+                    "exchange_filter": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Exchange Filter"
+                    },
+                    "limit": {
+                        "anyOf": [
+                            {
+                                "type": "integer"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Limit"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "coins",
+                    "total_count"
+                ],
+                "title": "CuratedCoinsResponse",
+                "description": "Schema de resposta para lista de moedas curadas"
             },
             "HTTPValidationError": {
                 "properties": {

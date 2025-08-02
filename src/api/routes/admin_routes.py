@@ -3,7 +3,7 @@ Rotas de administração para configuração do sistema
 """
 
 from typing import List
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from sqlalchemy.orm import Session
 from src.database.connection import get_db
 from src.database.models import MonitoringConfig, TelegramSubscription, SignalHistory
