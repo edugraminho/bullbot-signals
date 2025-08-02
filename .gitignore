@@ -11,3 +11,4 @@ htmlcov/
 .env.*.local
 
 drafts.md
+celerybeat-schedule
