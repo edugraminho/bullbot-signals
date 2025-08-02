@@ -88,9 +88,10 @@ async def get_multiple_rsi(
                 status_code=400, detail="Pelo menos um símbolo deve ser fornecido"
             )
 
-        if len(symbol_list) > 10:
+        if len(symbol_list) > settings.api_max_symbols_per_request:
             raise HTTPException(
-                status_code=400, detail="Máximo 10 símbolos por consulta"
+                status_code=400,
+                detail=f"Máximo {settings.api_max_symbols_per_request} símbolos por consulta",
             )
 
         rsi_service = RSIService()

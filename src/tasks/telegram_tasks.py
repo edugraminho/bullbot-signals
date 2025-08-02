@@ -32,15 +32,36 @@ def send_telegram_signal(self, analysis):
     Task para enviar sinal via Telegram
 
     Args:
-        analysis: Objeto RSIAnalysis completo
+        analysis: Objeto RSIAnalysis completo ou dicionário com dados do sinal
     """
     try:
-        symbol = analysis.rsi_data.symbol
-        signal_type = analysis.signal.signal_type.value
+        # Verificar se é dicionário ou objeto
+        if isinstance(analysis, dict):
+            # Dados vindos de monitor_tasks
+            symbol = analysis["symbol"]
+            signal_type = analysis["signal_type"]
+            rsi_value = analysis["rsi_value"]
+            current_price = analysis["current_price"]
+            strength = analysis["strength"]
+            timeframe = analysis["timeframe"]
+            message = analysis["message"]
+            source = analysis["source"]
+            timestamp = analysis["timestamp"]
+        else:
+            # Objeto RSIAnalysis
+            symbol = analysis.rsi_data.symbol
+            signal_type = analysis.signal.signal_type.value
+            rsi_value = float(analysis.rsi_data.value)
+            current_price = float(analysis.rsi_data.current_price)
+            strength = analysis.signal.strength.value
+            timeframe = analysis.signal.timeframe
+            message = analysis.signal.message
+            source = analysis.rsi_data.source
+            timestamp = analysis.rsi_data.timestamp.isoformat()
 
         logger.info(f"Enviando sinal Telegram para {symbol}: {signal_type}")
 
-        # Obter assinantes ativos (corrigir para chamada async)
+        # Obter assinantes ativos
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
@@ -55,14 +76,54 @@ def send_telegram_signal(self, analysis):
             logger.warning(f"Nenhum assinante ativo para {symbol}")
             return {"status": "no_subscribers", "symbol": symbol}
 
-        # Enviar sinal via Telegram (corrigir para chamada async)
+        # Enviar sinal via Telegram
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         try:
-            success = loop.run_until_complete(
-                telegram_client.send_signal(analysis, chat_ids)
-            )
+            if isinstance(analysis, dict):
+                # Criar mensagem de teste
+                test_message = f"""
+🚀 <b>SINAL RSI - {symbol}/USDT</b>
+
+📊 <b>RSI:</b> {rsi_value:.2f}
+💰 <b>Preço:</b> ${current_price:,.2f}
+⏰ <b>Timeframe:</b> {timeframe}
+📈 <b>Sinal:</b> {signal_type.upper()}
+🎯 <b>Força:</b> {strength.upper()}
+
+💬 <b>Análise:</b>
+{message}
+
+🔗 <b>Fonte:</b> {source.title()}
+📅 <b>Horário:</b> {timestamp}
+
+<i>🤖 Sinal automático do Crypto Hunter!</i>
+                """.strip()
+
+                # Enviar mensagem diretamente
+                async def send_messages():
+                    success_count = 0
+                    for chat_id in chat_ids:
+                        try:
+                            await telegram_client.bot.send_message(
+                                chat_id=chat_id,
+                                text=test_message,
+                                parse_mode="HTML",
+                                disable_web_page_preview=True,
+                            )
+                            success_count += 1
+                            logger.info(f"Mensagem enviada para chat {chat_id}")
+                        except Exception as e:
+                            logger.error(f"Erro ao enviar para chat {chat_id}: {e}")
+                    return success_count > 0
+
+                success = loop.run_until_complete(send_messages())
+            else:
+                # Objeto RSIAnalysis - usar método original
+                success = loop.run_until_complete(
+                    telegram_client.send_signal(analysis, chat_ids)
+                )
         finally:
             loop.close()
 
@@ -71,14 +132,14 @@ def send_telegram_signal(self, analysis):
             db = SessionLocal()
             signal_history = SignalHistory(
                 symbol=symbol,
-                rsi_value=float(analysis.rsi_data.value),
+                rsi_value=rsi_value,
                 signal_type=signal_type,
-                strength=analysis.signal.strength.value,
-                price=float(analysis.rsi_data.current_price),
-                timeframe=analysis.signal.timeframe,
-                source=analysis.rsi_data.source,
+                strength=strength,
+                price=current_price,
+                timeframe=timeframe,
+                source=source,
                 telegram_sent=True,
-                message=analysis.signal.message,
+                message=message,
             )
             db.add(signal_history)
             db.commit()

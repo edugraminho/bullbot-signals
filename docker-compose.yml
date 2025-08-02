@@ -70,7 +70,7 @@ services:
   redis:
     image: redis:8.0
     ports:
-      - "6388:6379"
+      - "6379:6379"
     networks:
       - crypto_network 
 

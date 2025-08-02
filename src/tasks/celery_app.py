@@ -23,12 +23,12 @@ celery_app.conf.update(
     # Timezone
     timezone=settings.celery_timezone,
     enable_utc=settings.celery_enable_utc,
-    # Task routing
-    task_routes={
-        "src.tasks.monitor_tasks.*": {"queue": "monitor"},
-        "src.tasks.telegram_tasks.*": {"queue": "telegram"},
-        "src.tasks.telegram_bot_task.*": {"queue": "telegram"},
-    },
+    # Task routing - usar fila padrão para simplificar
+    # task_routes={
+    #     "src.tasks.monitor_tasks.*": {"queue": "monitor"},
+    #     "src.tasks.telegram_tasks.*": {"queue": "telegram"},
+    #     "src.tasks.telegram_bot_task.*": {"queue": "telegram"},
+    # },
     # Concorrência e Performance
     worker_concurrency=settings.celery_worker_count,
     task_acks_late=settings.celery_task_acknowledge_late,

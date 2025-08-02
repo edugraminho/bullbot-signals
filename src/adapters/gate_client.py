@@ -201,9 +201,7 @@ class GateClient:
         try:
             # Buscar dados suficientes para calcular RSI usando configuração
             total_periods = period + 100
-            logger.info(
-                f"Buscando {total_periods} períodos para RSI (window={period} + histórico={100})"
-            )
+            logger.debug(f"Buscando RSI Gate.io: {symbol} {interval}")
             ohlcv_data = await self.get_ohlcv(symbol, interval, total_periods)
 
             if not ohlcv_data:

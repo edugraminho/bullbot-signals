@@ -167,3 +167,5 @@ Enviar apenas sinais que atendem aos critérios do usuário
 /timeframes 15m,1h - Definir períodos
 /rsi 25,75 - Definir níveis (sobrevenda,sobrecompra)
 /cooldown 2 - Definir cooldown (horas)
+
+

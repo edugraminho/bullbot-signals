@@ -167,8 +167,20 @@ def process_single_symbol(
 
         if should_send:
             # Enviar sinal via Telegram (task assíncrona)
-            # Passar objeto RSIAnalysis completo
-            send_telegram_signal.delay(analysis)
+            # Criar dicionário serializável com os dados do sinal
+            signal_data = {
+                "symbol": symbol,
+                "signal_type": analysis.signal.signal_type.value,
+                "rsi_value": float(rsi_data.value),
+                "current_price": float(rsi_data.current_price),
+                "strength": analysis.signal.strength.value,
+                "timeframe": analysis.signal.timeframe,
+                "message": analysis.signal.message,
+                "source": rsi_data.source,
+                "timestamp": rsi_data.timestamp.isoformat(),
+            }
+
+            send_telegram_signal.delay(signal_data)
 
             # Marcar sinal como enviado
             loop.run_until_complete(signal_filter.mark_signal_sent(symbol, analysis))
@@ -185,7 +197,6 @@ def process_single_symbol(
             }
 
         else:
-            logger.debug(f"Sinal filtrado para {symbol}")
             return {"status": "filtered", "symbol": symbol, "rsi_value": rsi_data.value}
 
     except Exception as e:

@@ -46,9 +46,7 @@ class RSICalculator:
         # Extrair preços de fechamento
         closes = [float(item["close"]) for item in sorted_data]
 
-        # Debug: mostrar preços de fechamento sendo usados
-        logger.info(f"Total de períodos disponíveis: {len(closes)}")
-        logger.info(f"Preços de fechamento para RSI (últimos 5): {closes[-5:]}")
+        logger.debug(f"Calculando RSI para {symbol}: {len(closes)} períodos")
 
         # Calcular mudanças (conforme documentação TradingView)
         changes = []
@@ -99,15 +97,8 @@ class RSICalculator:
             )
             rsi_values.append(rsi_data)
 
-        # Debug detalhado
         if rsi_values:
-            latest_rsi = rsi_values[-1]
-            logger.info(f"RSI calculado: {len(rsi_values)} valores")
-            logger.info(
-                f"RSI mais recente: {latest_rsi.value} para {latest_rsi.symbol} em {latest_rsi.timestamp}"
-            )
-            logger.info(f"Últimos 3 preços de fechamento: {closes[-3:]}")
-            logger.info(f"Timestamp do último candle: {sorted_data[-1]['timestamp']}")
+            logger.debug(f"RSI calculado: {len(rsi_values)} valores para {symbol}")
 
         return rsi_values
 

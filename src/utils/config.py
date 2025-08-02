@@ -65,7 +65,6 @@ class Settings(BaseSettings):
         "LINK",
         "SEI",
         "DRIFT",
-        "RLB",
         "MKR",
         "SUPER",
         "DYDX",
@@ -131,6 +130,9 @@ class Settings(BaseSettings):
     # ===============================================
     # API Settings
     # ===============================================
+
+    # Limites da API - /rsi/multiple?symbols
+    api_max_symbols_per_request: int = 200
 
     class Config:
         env_file = ".env"

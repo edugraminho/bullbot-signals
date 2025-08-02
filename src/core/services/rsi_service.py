@@ -110,8 +110,7 @@ class RSIService:
                 rsi_data = await client.get_latest_rsi(symbol, interval, window)
 
             if rsi_data:
-                logger.info(f"RSI MEXC calculado para {symbol}: {rsi_data.value}")
-                logger.info(f"Preço atual MEXC: {rsi_data.current_price}")
+                logger.debug(f"RSI MEXC: {symbol} = {rsi_data.value}")
                 return rsi_data
             else:
                 logger.warning(f"Nenhum dado RSI MEXC calculado para {symbol}")
@@ -140,8 +139,7 @@ class RSIService:
                 rsi_data = await client.get_latest_rsi(symbol, interval, window)
 
             if rsi_data:
-                logger.info(f"RSI Binance calculado para {symbol}: {rsi_data.value}")
-                logger.info(f"Preço atual Binance: {rsi_data.current_price}")
+                logger.debug(f"RSI Binance: {symbol} = {rsi_data.value}")
                 return rsi_data
             else:
                 logger.warning(f"Nenhum dado RSI Binance calculado para {symbol}")

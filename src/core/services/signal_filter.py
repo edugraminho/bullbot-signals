@@ -20,7 +20,7 @@ class SignalFilter:
     def __init__(self):
         self.redis_client = redis.Redis(
             host=os.getenv("REDIS_HOST", "redis"),
-            port=os.getenv("REDIS_PORT", 6388),
+            port=os.getenv("REDIS_PORT", 6379),
             db=2,
         )
 
@@ -116,7 +116,7 @@ class SignalFilter:
             if await self._is_in_cooldown(
                 symbol, analysis.signal.timeframe, analysis.signal.strength
             ):
-                logger.info(f"Sinal {symbol} em cooldown")
+                logger.debug(f"Sinal {symbol} em cooldown")
                 return False
 
             # 2. Verificar se sinal é mais forte que o anterior
@@ -238,7 +238,7 @@ class SignalFilter:
 
             # Atualizar último RSI
             rsi_key = f"last_rsi:{symbol}:{timeframe}"
-            self.redis_client.setex(rsi_key, 86400, rsi_value)  # 24 horas
+            self.redis_client.setex(rsi_key, 86400, float(rsi_value))  # 24 horas
 
             # Atualizar contadores diários
             total_key = f"daily_count:{symbol}:{today}"
