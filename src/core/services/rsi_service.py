@@ -44,8 +44,6 @@ class RSIService:
             self.rsi_levels = RSILevels(
                 oversold=settings.rsi_oversold,
                 overbought=settings.rsi_overbought,
-                extreme_oversold=settings.rsi_extreme_oversold,
-                extreme_overbought=settings.rsi_extreme_overbought,
             )
 
     async def get_rsi(
@@ -218,44 +216,26 @@ class RSIService:
         """
         Analisa o RSI e gera sinal de trading
 
-        Lógica baseada nos níveis clássicos:
-        - RSI > 70: Sobrecompra (possível venda)
-        - RSI < 30: Sobrevenda (possível compra)
-        - RSI > 80: Sobrecompra extrema
-        - RSI < 20: Sobrevenda extrema
+        Lógica simplificada baseada na configuração do banco:
+        - RSI >= overbought: SELL (sobrecompra)
+        - RSI <= oversold: BUY (sobrevenda)
+        - RSI entre oversold e overbought: None (zona neutra)
         """
         rsi_value = rsi_data.value
 
-        # Determinar tipo e força do sinal
-        if rsi_value >= self.rsi_levels.extreme_overbought:
-            signal_type = SignalType.STRONG_SELL
-            strength = SignalStrength.STRONG
-            interpretation = f"RSI {rsi_value} indica sobrecompra EXTREMA"
-            risk_level = "ALTO"
-            message = f"🔴 Sobrecompra extrema! RSI em {rsi_value}. Considere venda."
-
-        elif rsi_value >= self.rsi_levels.overbought:
+        if rsi_value >= self.rsi_levels.overbought:
             signal_type = SignalType.SELL
-            strength = SignalStrength.MODERATE
-            interpretation = f"RSI {rsi_value} indica sobrecompra"
-            risk_level = "MÉDIO"
-            message = (
-                f"📉 Sobrecompra detectada. RSI em {rsi_value}. Possível reversão."
-            )
-
-        elif rsi_value <= self.rsi_levels.extreme_oversold:
-            signal_type = SignalType.STRONG_BUY
             strength = SignalStrength.STRONG
-            interpretation = f"RSI {rsi_value} indica sobrevenda EXTREMA"
+            interpretation = f"RSI {rsi_value} indica sobrecompra forte"
             risk_level = "ALTO"
-            message = f"🚀 Sobrevenda extrema! RSI em {rsi_value}. Forte oportunidade de compra."
+            message = f"🔴 Sobrecompra forte detectada. RSI em {rsi_value}."
 
         elif rsi_value <= self.rsi_levels.oversold:
             signal_type = SignalType.BUY
-            strength = SignalStrength.MODERATE
-            interpretation = f"RSI {rsi_value} indica sobrevenda"
-            risk_level = "MÉDIO"
-            message = f"📈 Sobrevenda detectada. RSI em {rsi_value}. Possível reversão de alta."
+            strength = SignalStrength.STRONG
+            interpretation = f"RSI {rsi_value} indica sobrevenda forte"
+            risk_level = "ALTO"
+            message = f"🚀 Sobrevenda forte detectada. RSI em {rsi_value}."
 
         else:
             return None

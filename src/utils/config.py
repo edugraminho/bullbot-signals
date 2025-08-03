@@ -3,6 +3,7 @@ Configurações do projeto usando Pydantic Settings
 """
 
 from typing import List
+
 from pydantic_settings import BaseSettings
 
 
@@ -18,10 +19,8 @@ class Settings(BaseSettings):
     rsi_analysis_timeframe: str = "15m"  # Timeframe para análise (15m, 1h, 4h)
 
     # Limites RSI para sinais - O sistema prioriza a conf do banco quando ela existe
-    rsi_oversold: int = 30  # ≤ Nível de sobrevenda
-    rsi_overbought: int = 70 # ≥ Nível de sobrecompra
-    rsi_extreme_oversold: int = 20  # ≤ Sobrevenda extrema
-    rsi_extreme_overbought: int = 80  # ≥ Sobrecompra extrema
+    rsi_oversold: int = 20  # ≤ Nível de sobrevenda
+    rsi_overbought: int = 80  # ≥ Nível de sobrecompra
 
     # Símbolos padrão para monitoramento
     default_crypto_symbols: List[str] = [
@@ -135,6 +134,11 @@ class Settings(BaseSettings):
     # Configurações de Timeout (segundos)
     celery_task_warning_timeout: int = 300  # 300 = 5 min - aviso de timeout
     celery_task_force_kill_timeout: int = 600  # 10 min - força encerramento
+
+    # Configurações do Telegram
+    telegram_connection_pool_size: int = 20  # Pool de conexões HTTP
+    telegram_pool_timeout: int = 60  # Timeout do pool em segundos
+    telegram_batch_size: int = 5  # Máximo de envios simultâneos
 
     # ===============================================
     # API Settings

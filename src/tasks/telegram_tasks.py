@@ -8,9 +8,71 @@ from src.integrations.telegram_bot import telegram_client
 from src.database.models import SignalHistory
 from src.database.connection import SessionLocal
 from src.utils.logger import get_logger
+from src.utils.price_formatter import format_crypto_price
 import asyncio
+import random
+from telegram.error import TimedOut, NetworkError, RetryAfter
 
 logger = get_logger(__name__)
+
+
+async def send_message_with_retry(
+    bot, chat_id: str, message_text: str, max_retries: int = 3
+) -> bool:
+    """
+    Envia mensagem com retry inteligente e backoff exponencial
+
+    Args:
+        bot: Instância do bot Telegram
+        chat_id: ID do chat
+        message_text: Texto da mensagem
+        max_retries: Máximo de tentativas
+
+    Returns:
+        True se enviou com sucesso, False caso contrário
+
+    Por que essa abordagem:
+    - Backoff exponencial: reduz carga na API
+    - Jitter: evita "thundering herd" (todas as tasks tentando ao mesmo tempo)
+    - Tratamento específico para diferentes tipos de erro
+    - Sem sleep bloqueante: usa asyncio.sleep que não bloqueia a thread
+    """
+
+    for attempt in range(max_retries + 1):
+        try:
+            await bot.send_message(
+                chat_id=chat_id,
+                text=message_text,
+                parse_mode="HTML",
+                disable_web_page_preview=True,
+            )
+            return True
+
+        except RetryAfter as e:
+            # API rate limit - esperar o tempo indicado
+            wait_time = e.retry_after + random.uniform(0.1, 0.5)  # Jitter
+            logger.warning(
+                f"⏳ Rate limit para chat {chat_id}: aguardando {wait_time:.1f}s"
+            )
+            await asyncio.sleep(wait_time)
+
+        except (TimedOut, NetworkError) as e:
+            if attempt < max_retries:
+                # Backoff exponencial com jitter
+                wait_time = (2**attempt) + random.uniform(0.1, 1.0)
+                logger.warning(
+                    f"🔄 Tentativa {attempt + 1}/{max_retries + 1} para chat {chat_id} - aguardando {wait_time:.1f}s"
+                )
+                await asyncio.sleep(wait_time)
+            else:
+                logger.error(f"❌ Falha definitiva para chat {chat_id}: {e}")
+                return False
+
+        except Exception as e:
+            logger.error(f"❌ Erro inesperado para chat {chat_id}: {e}")
+            return False
+
+    return False
 
 
 class TelegramTaskConfig:
@@ -35,6 +97,13 @@ def send_telegram_signal(self, analysis):
         analysis: Objeto RSIAnalysis completo ou dicionário com dados do sinal
     """
     try:
+        # Verificar se o cliente Telegram está disponível
+        if telegram_client is None:
+            logger.error(
+                "❌ Cliente Telegram não está disponível - verificar TELEGRAM_BOT_TOKEN"
+            )
+            return {"status": "failed", "error": "Telegram client not available"}
+
         # Verificar se é dicionário ou objeto
         if isinstance(analysis, dict):
             # Dados vindos de monitor_tasks
@@ -59,35 +128,37 @@ def send_telegram_signal(self, analysis):
             source = analysis.rsi_data.source
             timestamp = analysis.rsi_data.timestamp.isoformat()
 
-        logger.info(f"Enviando sinal Telegram para {symbol}: {signal_type}")
+        logger.info(
+            f"🚀 Iniciando envio de sinal Telegram para {symbol}: {signal_type}"
+        )
 
-        # Obter assinantes ativos
+        # Usar um único loop para toda a operação
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         try:
-            chat_ids = loop.run_until_complete(
-                telegram_client.get_active_subscribers(symbol)
-            )
-        finally:
-            loop.close()
+            # Função assíncrona principal que executa todas as operações
+            async def process_telegram_signal():
+                # Obter assinantes ativos
+                logger.info(f"🔍 Buscando assinantes para {symbol}...")
+                chat_ids = await telegram_client.get_active_subscribers(symbol)
+                logger.info(f"📋 Encontrados {len(chat_ids)} assinantes para {symbol}")
 
-        if not chat_ids:
-            logger.warning(f"Nenhum assinante ativo para {symbol}")
-            return {"status": "no_subscribers", "symbol": symbol}
+                if not chat_ids:
+                    logger.warning(f"❌ Nenhum assinante ativo para {symbol}")
+                    return {"status": "no_subscribers", "symbol": symbol}
 
-        # Enviar sinal via Telegram
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+                # Enviar mensagens diretamente para cada chat
+                success_count = 0
 
-        try:
-            if isinstance(analysis, dict):
-                # Criar mensagem de teste
-                test_message = f"""
+                # Formatar mensagem (sempre recebemos dicionário)
+                formatted_price = format_crypto_price(current_price)
+
+                message_text = f"""
 🚀 <b>SINAL RSI - {symbol}/USDT</b>
 
 📊 <b>RSI:</b> {rsi_value:.2f}
-💰 <b>Preço:</b> ${current_price:,.2f}
+💰 <b>Preço:</b> {formatted_price}
 ⏰ <b>Timeframe:</b> {timeframe}
 📈 <b>Sinal:</b> {signal_type.upper()}
 🎯 <b>Força:</b> {strength.upper()}
@@ -101,29 +172,71 @@ def send_telegram_signal(self, analysis):
 <i>🤖 Sinal automático do Crypto Hunter!</i>
                 """.strip()
 
-                # Enviar mensagem diretamente
-                async def send_messages():
-                    success_count = 0
-                    for chat_id in chat_ids:
-                        try:
-                            await telegram_client.bot.send_message(
-                                chat_id=chat_id,
-                                text=test_message,
-                                parse_mode="HTML",
-                                disable_web_page_preview=True,
-                            )
-                            success_count += 1
-                            logger.info(f"Mensagem enviada para chat {chat_id}")
-                        except Exception as e:
-                            logger.error(f"❌ Erro ao enviar para chat {chat_id}: {e}")
-                    return success_count > 0
+                # Enviar para cada chat usando retry inteligente
+                logger.info(f"📤 Enviando mensagem para {len(chat_ids)} chats...")
 
-                success = loop.run_until_complete(send_messages())
-            else:
-                # Objeto RSIAnalysis - usar método original
-                success = loop.run_until_complete(
-                    telegram_client.send_signal(analysis, chat_ids)
-                )
+                # Processar chats em pequenos lotes para evitar sobrecarga
+                from src.utils.config import settings
+
+                batch_size = settings.telegram_batch_size  # Configurável
+                for i in range(0, len(chat_ids), batch_size):
+                    batch_chat_ids = chat_ids[i : i + batch_size]
+                    logger.info(
+                        f"📤 Processando lote {i // batch_size + 1}: {len(batch_chat_ids)} chats"
+                    )
+
+                    # Criar tasks assíncronas para o lote
+                    send_tasks = [
+                        send_message_with_retry(
+                            telegram_client.bot, chat_id, message_text
+                        )
+                        for chat_id in batch_chat_ids
+                    ]
+
+                    # Executar lote e contar sucessos
+                    batch_results = await asyncio.gather(
+                        *send_tasks, return_exceptions=True
+                    )
+
+                    for chat_id, result in zip(batch_chat_ids, batch_results):
+                        if isinstance(result, Exception):
+                            logger.error(f"❌ Exceção para chat {chat_id}: {result}")
+                        elif result:
+                            success_count += 1
+                            logger.info(
+                                f"✅ Mensagem enviada com sucesso para chat {chat_id}"
+                            )
+                        else:
+                            logger.error(f"❌ Falha no envio para chat {chat_id}")
+
+                    # Pequena pausa entre lotes para distribuir a carga
+                    if i + batch_size < len(chat_ids):
+                        await asyncio.sleep(0.1)  # 100ms entre lotes
+
+                return {
+                    "success": success_count > 0,
+                    "chat_ids": chat_ids,
+                    "symbol": symbol,
+                    "sent_count": success_count,
+                }
+
+            # Executar a operação completa
+            result = loop.run_until_complete(process_telegram_signal())
+
+            logger.info(f"📊 Resultado do processamento para {symbol}: {result}")
+
+            # Verificar se houve sucesso
+            if result.get("status") == "no_subscribers":
+                logger.warning(f"❌ Nenhum assinante para {symbol}")
+                return result
+
+            success = result.get("success", False)
+            sent_count = result.get("sent_count", 0)
+
+        except Exception as e:
+            logger.error(f"❌ Erro durante processamento assíncrono: {e}")
+            success = False
+            sent_count = 0
         finally:
             loop.close()
 
@@ -145,8 +258,12 @@ def send_telegram_signal(self, analysis):
             db.commit()
             db.close()
 
-            return {"status": "sent", "symbol": symbol, "recipients": len(chat_ids)}
+            logger.info(
+                f"✅ Sinal enviado com sucesso para {symbol} - {sent_count} destinatários"
+            )
+            return {"status": "sent", "symbol": symbol, "recipients": sent_count}
         else:
+            logger.error(f"❌ Falha no envio do sinal para {symbol}")
             return {
                 "status": "failed",
                 "symbol": symbol,

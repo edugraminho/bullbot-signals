@@ -5,10 +5,12 @@ Cliente Telegram para envio de sinais
 from typing import List, Optional
 from telegram import Bot
 from telegram.error import TelegramError
+from telegram.request import HTTPXRequest
 from src.core.services.rsi_service import RSIAnalysis
 from src.database.models import TelegramSubscription
 from src.database.connection import SessionLocal
 from src.utils.logger import get_logger
+from src.utils.price_formatter import format_crypto_price
 import os
 
 
@@ -16,11 +18,25 @@ logger = get_logger(__name__)
 
 
 class TelegramClient:
-    """Cliente para envio de mensagens via Telegram"""
+    """Cliente para envio de mensagens via Telegram com connection pooling otimizado"""
 
     def __init__(self, bot_token: str):
-        self.bot = Bot(token=bot_token)
+        from src.utils.config import settings
+
+        # Configurar request personalizado com pool de conexões otimizado
+        self.request = HTTPXRequest(
+            connection_pool_size=settings.telegram_connection_pool_size,
+            read_timeout=30.0,  # Timeout de leitura
+            write_timeout=30.0,  # Timeout de escrita
+            connect_timeout=10.0,  # Timeout de conexão
+            pool_timeout=settings.telegram_pool_timeout,  # Configurável
+        )
+
+        self.bot = Bot(token=bot_token, request=self.request)
         self.bot_token = bot_token
+        logger.info(
+            f"🔧 Cliente Telegram configurado com pool de {settings.telegram_connection_pool_size} conexões (timeout: {settings.telegram_pool_timeout}s)"
+        )
 
     async def send_signal(self, analysis: RSIAnalysis, chat_ids: List[str]) -> bool:
         """
@@ -90,7 +106,7 @@ class TelegramClient:
         {emoji} <b>SINAL RSI - {rsi_data.symbol}/USDT</b>
 
         📊 <b>RSI:</b> {rsi_data.value:.2f}
-        💰 <b>Preço:</b> ${rsi_data.current_price:,.2f}
+        💰 <b>Preço:</b> {format_crypto_price(rsi_data.current_price)}
         ⏰ <b>Timeframe:</b> {signal.timeframe}
         📈 <b>Sinal:</b> {signal.signal_type.value} {strength_icon}
         🎯 <b>Força:</b> {signal.strength.value}

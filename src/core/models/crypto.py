@@ -45,7 +45,5 @@ class OHLCVData(BaseModel):
 class RSILevels(BaseModel):
     """Níveis de RSI para sinais"""
 
-    oversold: Decimal = Field(30, description="Nível de sobrevenda")
-    overbought: Decimal = Field(70, description="Nível de sobrecompra")
-    extreme_oversold: Decimal = Field(20, description="Sobrevenda extrema")
-    extreme_overbought: Decimal = Field(80, description="Sobrecompra extrema")
+    oversold: Decimal = Field(20, description="Nível de sobrevenda")
+    overbought: Decimal = Field(80, description="Nível de sobrecompra")

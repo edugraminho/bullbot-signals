@@ -169,3 +169,23 @@ Enviar apenas sinais que atendem aos critérios do usuário
 /cooldown 2 - Definir cooldown (horas)
 
 
+
+
+TESTE:
+
+docker exec crypto-hunter-celery_worker-1 python3 -c "
+from src.tasks.telegram_tasks import send_telegram_signal
+signal_data = {
+    'symbol': 'TEST',
+    'signal_type': 'BUY', 
+    'rsi_value': 25.0,
+    'current_price': 0.001234,
+    'strength': 'STRONG',
+    'timeframe': '15m',
+    'message': '🧪 Teste das configurações otimizadas',
+    'source': 'teste',
+    'timestamp': '2025-08-03T00:00:00Z'
+}
+task = send_telegram_signal.delay(signal_data)
+print('🧪 Task de teste agendada:', task.id)
+"

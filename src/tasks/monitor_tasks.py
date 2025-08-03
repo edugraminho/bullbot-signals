@@ -91,7 +91,9 @@ def monitor_rsi_signals(self):
     cycle_start_time = time.time()
 
     try:
-        logger.info("🚀 Iniciando ciclo de monitoramento RSI")
+        logger.info("=" * 60)
+        logger.info("🚀 INICIANDO CICLO DE MONITORAMENTO RSI 🚀")
+        logger.info("=" * 60)
 
         # Obter configuração ativa
         symbols = get_active_symbols()
@@ -115,6 +117,12 @@ def monitor_rsi_signals(self):
         logger.info(
             f"✅ Ciclo iniciado: {len(symbols)} símbolos em {len(symbol_batches)} exchanges "
             f"(inicialização: {cycle_duration:.2f}s)"
+        )
+        logger.info("-" * 60)
+
+        # Agendar callback para log de fim de ciclo
+        finalize_monitoring_cycle.delay(
+            cycle_start_time, len(symbols), len(symbol_batches)
         )
 
         return {
@@ -157,8 +165,6 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
             custom_rsi_levels = RSILevels(
                 oversold=monitoring_config.rsi_oversold,
                 overbought=monitoring_config.rsi_overbought,
-                extreme_oversold=max(monitoring_config.rsi_oversold - 10, 10),
-                extreme_overbought=min(monitoring_config.rsi_overbought + 10, 90),
             )
             rsi_service = RSIService(custom_rsi_levels=custom_rsi_levels)
         else:
@@ -210,6 +216,7 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
             f"✅ Batch {exchange} concluído: {successful}/{len(symbols)} sucessos "
             f"({batch_duration:.2f}s total, {avg_time_per_symbol:.2f}s/moeda)"
         )
+        logger.info("-" * 40)
 
         return {
             "status": "completed",
@@ -270,13 +277,24 @@ def process_single_symbol(
             from src.utils.trading_coins import trading_coins
 
             trading_coins.remove_exchange_from_coin(symbol, exchange)
+            logger.debug(f"❌ {symbol}: Sem dados na {exchange}")
             return {"status": "no_data", "symbol": symbol, "exchange": exchange}
 
         # Analisar RSI
         analysis = rsi_service.analyze_rsi(rsi_data)
 
+        # Log breve da moeda e RSI
+        logger.debug(
+            f"📊 {symbol}: RSI {rsi_data.value:.2f} | Preço ${rsi_data.current_price}"
+        )
+
         if not analysis:
-            return {"status": "neutral_zone", "symbol": symbol, "rsi_value": rsi_data.value}
+            logger.debug(f"⚪ {symbol}: Zona neutra (RSI: {rsi_data.value:.2f})")
+            return {
+                "status": "neutral_zone",
+                "symbol": symbol,
+                "rsi_value": rsi_data.value,
+            }
 
         # Aplicar filtros anti-spam
         should_send = loop.run_until_complete(
@@ -318,8 +336,8 @@ def process_single_symbol(
             loop.run_until_complete(signal_filter.mark_signal_sent(symbol, analysis))
 
             logger.info(
-                f"📡 Sinal enviado para {symbol}: {analysis.signal.signal_type.value} "
-                f"(RSI: {rsi_data.value:.2f}) - {len(chat_ids)} assinantes"
+                f"📡 🚀 SINAL ENVIADO: {symbol} | {analysis.signal.signal_type.value} | "
+                f"RSI: {rsi_data.value:.2f} | {len(chat_ids)} assinantes"
             )
 
             return {
@@ -330,6 +348,7 @@ def process_single_symbol(
             }
 
         else:
+            logger.debug(f"🔕 {symbol}: Sinal filtrado (RSI: {rsi_data.value:.2f})")
             return {"status": "filtered", "symbol": symbol, "rsi_value": rsi_data.value}
 
     except Exception as e:
@@ -452,4 +471,36 @@ def cleanup_old_signals():
     except Exception as e:
         cleanup_duration = time.time() - cleanup_start_time
         logger.error(f"❌ Erro na limpeza: {e} (duração: {cleanup_duration:.2f}s)")
+        return {"status": "error", "error": str(e)}
+
+
+@celery_app.task
+def finalize_monitoring_cycle(
+    cycle_start_time: float, total_symbols: int, total_batches: int
+):
+    """Task para finalizar logs do ciclo de monitoramento"""
+    try:
+        # Aguardar um tempo para que os batches terminem
+        import time
+
+        time.sleep(10)  # 10 segundos de delay para permitir que os batches terminem
+
+        cycle_duration = time.time() - cycle_start_time
+        logger.info("-" * 60)
+        logger.info("🏁 FINALIZANDO CICLO DE MONITORAMENTO RSI")
+        logger.info(
+            f"📊 Total processado: {total_symbols} símbolos em {total_batches} batches"
+        )
+        logger.info(f"⏱️ Duração total do ciclo: {cycle_duration:.2f}s")
+        logger.info("=" * 60)
+
+        return {
+            "status": "cycle_finalized",
+            "total_duration": cycle_duration,
+            "total_symbols": total_symbols,
+            "total_batches": total_batches,
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao finalizar ciclo: {e}")
         return {"status": "error", "error": str(e)}
