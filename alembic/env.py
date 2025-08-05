@@ -31,7 +31,7 @@ def get_database_url():
     """Get database URL from environment variables"""
     return os.getenv(
         "DATABASE_URL",
-        "postgresql://crypto_user:crypto_password_2025@db:5432/crypto_hunter",
+        "postgresql://crypto_user:crypto_password_2025@db:5432/bullbot_signals",
     )
 
 

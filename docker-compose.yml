@@ -11,7 +11,7 @@ services:
     env_file:
       - .env
     networks:
-      - crypto_network
+      - bullbot_network
 
   db:
     image: postgres:17.1
@@ -22,7 +22,7 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
-      - crypto_network
+      - bullbot_network
   
   celery_worker:
     build:
@@ -36,7 +36,7 @@ services:
     env_file:
       - .env
     networks:
-      - crypto_network
+      - bullbot_network
       
   celery_beat:
     build:
@@ -50,33 +50,18 @@ services:
     env_file:
       - .env
     networks:
-      - crypto_network
-
-  telegram_bot:
-    build:
-      context: .
-    command: python -c "import asyncio; from src.integrations.telegram_handlers import run_telegram_bot; asyncio.run(run_telegram_bot())"
-    volumes:
-      - .:/app
-    depends_on:
-      - redis
-      - db
-    env_file:
-      - .env
-    networks:
-      - crypto_network
-    restart: unless-stopped
+      - bullbot_network
 
   redis:
     image: redis:8.0
     ports:
       - "6379:6379"
     networks:
-      - crypto_network 
+      - bullbot_network 
 
 volumes:
   pgdata:
 
 networks:
-  crypto_network:
+  bullbot_network:
     driver: bridge 

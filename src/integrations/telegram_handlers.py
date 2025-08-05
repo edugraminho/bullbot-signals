@@ -57,14 +57,14 @@ class TelegramBot:
                 )
                 db.add(subscription)
                 db.commit()
-                message = "🎉 Bem-vindo ao Crypto Hunter!\n\n✅ Você foi cadastrado com sucesso!\n\n"
+                message = "🎉 Bem-vindo ao BullBot Signals!\n\n✅ Você foi cadastrado com sucesso!\n\n"
 
             db.close()
 
             # Mensagem de boas-vindas
             welcome_text = f"""
                 {message}
-                🤖 <b>Crypto Hunter Bot</b>
+                🤖 <b>BullBot Signals</b>
             
                 📊 <b>O que eu faço:</b>
                 • Monitoro indicadores RSI de criptomoedas
@@ -123,7 +123,7 @@ class TelegramBot:
             status_active = "🟢 ATIVO" if subscription.active else "🔴 INATIVO"
 
             status_text = f"""
-                📊 <b>Seu Status no Crypto Hunter</b>
+                📊 <b>Seu Status no BullBot Signals</b>
 
                 👤 <b>Assinatura:</b> {status_active}
                 🆔 <b>Chat ID:</b> <code>{chat_id}</code>
@@ -174,7 +174,7 @@ class TelegramBot:
 
     async def help_handler(self, update: Update, context):
         """Handler para comando /help"""
-        help_text = """🤖 <b>Crypto Hunter - Lista de Comandos</b>
+                    help_text = """🤖 <b>BullBot Signals - Lista de Comandos</b>
 
             <b>📋 Comandos Básicos:</b>
             /start - Cadastrar/reativar assinatura
@@ -237,7 +237,7 @@ class TelegramBot:
             stop_text = """
                 😔 <b>Assinatura Desativada</b>
 
-                Você não receberá mais sinais do Crypto Hunter.
+                Você não receberá mais sinais do BullBot Signals.
 
                 Para reativar, use o comando /start a qualquer momento.
 

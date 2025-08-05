@@ -122,7 +122,7 @@ docker-compose logs -f app
 - **MEXC**: 1000 req/min (83% margem segurança)
 
 ### **Throughput:**
-- **200 símbolos** processados em ~2-3 minutos
+- **+-500 símbolos** processados em ~2-3 minutos
 - **Escalável para 500+ símbolos** facilmente
 - **3000+ símbolos** teóricos (rate limit máximo)
 
@@ -133,13 +133,10 @@ docker-compose logs -f app
 
 ## 🔧 **CONFIGURAÇÕES**
 
-### **Símbolos Monitorados** (30 padrão):
-BTC, ETH, BNB, SOL, ADA, AVAX, DOT, MATIC, LINK, UNI, XRP, LTC, BCH, XLM, ALGO, ATOM, ICP, FIL, TRX, ETC, NEAR, APT, HBAR, VET, SAND, MANA, CRV, LRC, ENJ, BAT
 
 ### **Thresholds RSI:**
-- **Oversold**: ≤ 30 (sinais de compra)
-- **Overbought**: ≥ 70 (sinais de venda)
-- **Extreme zones**: ≤ 20, ≥ 80 (sinais STRONG)
+- **Oversold**: ≤ 20 (sinais de compra)
+- **Overbought**: ≥ 80 (sinais de venda)
 
 ## 🎉 **RESULTADO**
 
@@ -173,7 +170,7 @@ Enviar apenas sinais que atendem aos critérios do usuário
 
 TESTE:
 
-docker exec crypto-hunter-celery_worker-1 python3 -c "
+docker exec bullbot-signals-celery_worker-1 python3 -c "
 from src.tasks.telegram_tasks import send_telegram_signal
 signal_data = {
     'symbol': 'TEST',
@@ -189,3 +186,19 @@ signal_data = {
 task = send_telegram_signal.delay(signal_data)
 print('🧪 Task de teste agendada:', task.id)
 "
+
+
+verificar ForkPoolWorker
+docker compose exec celery_worker celery -A src.tasks.celery_app inspect active
+
+
+docker compose exec redis redis-cli keys "celery-task-meta-*" | head -5
+
+docker compose exec redis redis-cli get "celery-task-meta-8173566a-62fb-4f37-add0-0b6bd3bb1769" | python3 -m json.tool
+
+
+Ver se tem algum erro em alguma tarefa
+docker compose exec redis redis-cli keys "celery-task-meta-*" | xargs -I {} docker compose exec redis redis-cli get {} | grep -E "(FAILURE|ERROR|traceback)"
+
+
+Enviar .env para o server cd ~/Projects -  scp -i bybot.pem bullbot-signals/.env ubuntu@18.231.94.120:~/bullbot-signals/

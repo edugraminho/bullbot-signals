@@ -1,5 +1,5 @@
 """
-API principal do Crypto Hunter
+API principal do BullBot Signals
 """
 
 from fastapi import FastAPI
@@ -15,8 +15,8 @@ logger = get_logger(__name__)
 
 # Criar aplicação FastAPI
 app = FastAPI(
-    title="Crypto Hunter API",
-    description="API para análise de RSI em criptomoedas usando Polygon.io",
+    title="BullBot Signals API",
+    description="API para análise de RSI em criptomoedas usando múltiplas exchanges",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
@@ -51,7 +51,7 @@ def startup_event():
 async def root():
     """Endpoint raiz"""
     return {
-        "message": "🤖 Crypto Hunter API",
+        "message": "🤖 BullBot Signals API",
         "version": "1.0.0",
         "docs": "/docs",
         "health": "/rsi/health",

@@ -169,7 +169,7 @@ def send_telegram_signal(self, analysis):
 🔗 <b>Fonte:</b> {source.title()}
 📅 <b>Horário:</b> {timestamp}
 
-<i>🤖 Sinal automático do Crypto Hunter!</i>
+                <i>🤖 Sinal automático do BullBot Signals!</i>
                 """.strip()
 
                 # Enviar para cada chat usando retry inteligente

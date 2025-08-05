@@ -1,6 +1,6 @@
-# Crypto Hunter - Cursor Rules
+# BullBot Signals - Cursor Rules
 
-Este diretório contém as regras do Cursor AI organizadas por domínio para o projeto Crypto Hunter.
+Este diretório contém as regras do Cursor AI organizadas por domínio para o projeto BullBot Signals.
 
 ## Estrutura
 

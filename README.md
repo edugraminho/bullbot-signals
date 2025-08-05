@@ -1,4 +1,4 @@
-# Crypto Hunter 🤖
+# BullBot Signals 🤖
 
 Bot automatizado para trading de criptomoedas baseado no indicador RSI (Relative Strength Index), com integração às APIs da [Gate.io](https://www.gate.io/docs/apiv4/), [Binance](https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#klinecandlestick-data) e [MEXC](https://mexcdevelop.github.io/apidocs/spot_v3_en/) para dados OHLCV e cálculo próprio de RSI.
 
@@ -18,7 +18,7 @@ Bot automatizado para trading de criptomoedas baseado no indicador RSI (Relative
 
 ## 🎯 Sobre o Projeto
 
-O Crypto Hunter é uma aplicação de análise técnica automatizada que utiliza o indicador RSI (Relative Strength Index) para identificar oportunidades de trading em criptomoedas. O projeto integra com as APIs da Gate.io, Binance e MEXC para obter dados de RSI em tempo real e gerar sinais de compra/venda.
+O BullBot Signals é uma aplicação de análise técnica automatizada que utiliza o indicador RSI (Relative Strength Index) para identificar oportunidades de trading em criptomoedas. O projeto integra com as APIs da Gate.io, Binance e MEXC para obter dados de RSI em tempo real e gerar sinais de compra/venda.
 
 ## ✨ Funcionalidades
 
@@ -61,8 +61,8 @@ O Crypto Hunter é uma aplicação de análise técnica automatizada que utiliza
 
 1. **Clone o repositório**
 ```bash
-git clone https://github.com/seu-usuario/crypto-hunter.git
-cd crypto-hunter
+git clone https://github.com/seu-usuario/bullbot-signals.git
+cd bullbot-signals
 ```
 
 2. **Configure as variáveis de ambiente**
@@ -264,7 +264,7 @@ A API `/api/v3/klines` retorna dados em formato de array com **12 elementos** po
 ## 🏗️ Arquitetura
 
 ```
-crypto-hunter/
+bullbot-signals/
 ├── src/
 │   ├── core/                       # 🎯 Lógica central (domínio)
 │   │   ├── models/                 # Entidades de negócio

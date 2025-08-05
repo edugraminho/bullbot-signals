@@ -1,8 +1,8 @@
 {
     "openapi": "3.1.0",
     "info": {
-        "title": "Crypto Hunter API",
-        "description": "API para análise de RSI em criptomoedas usando Polygon.io",
+        "title": "BullBot Signals API",
+        "description": "API para análise de RSI em criptomoedas usando múltiplas exchanges",
         "version": "1.0.0"
     },
     "paths": {

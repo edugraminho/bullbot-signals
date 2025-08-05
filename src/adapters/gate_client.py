@@ -36,7 +36,7 @@ class GateClient:
         self.session = httpx.AsyncClient(
             timeout=30.0,
             headers={
-                "User-Agent": "CryptoHunter/1.0",
+                "User-Agent": "BullBotSignals/1.0",
                 "Accept": "application/json",
             },
         )
