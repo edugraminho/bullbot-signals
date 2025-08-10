@@ -85,34 +85,6 @@
 - **Error handling**: Auto-desativação de chats inválidos
 - **Retry automático**: 3 tentativas em caso de falha
 
-## 🚀 **COMO USAR**
-
-### **1. Inicializar Sistema**
-```bash
-# Subir infraestrutura
-docker-compose up -d
-
-# Inicializar banco
-docker-compose exec app python src/database/init_db.py
-```
-
-### **2. Configurar Bot Telegram**
-```python
-# Editar src/integrations/telegram_bot.py
-BOT_TOKEN = "your_bot_token_here"
-```
-
-### **3. Monitorar Logs**
-```bash
-# Worker logs
-docker-compose logs -f celery_worker
-
-# Beat logs  
-docker-compose logs -f celery_beat
-
-# App logs
-docker-compose logs -f app
-```
 
 ## 📈 **CAPACIDADE DO SISTEMA**
 
