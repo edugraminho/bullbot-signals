@@ -321,9 +321,7 @@ class TradingCoins:
         # Filtrar moedas
         filtered_coins = self.filter_coins(coins_data, volume_period)
 
-        # Salvar em ambos os formatos
         self.save_to_csv(filtered_coins)
-        self.save_to_json(filtered_coins)
 
         logger.info(
             f"Lista de trading coins atualizada com {len(filtered_coins)} moedas"

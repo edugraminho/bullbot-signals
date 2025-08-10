@@ -417,7 +417,7 @@ ranking,symbol,name,market_cap,volume_24h,volume_7d,volume_30d,price,launch_date
 416,CGPT,ChainGPT,73409396.0,14808412.0,0.0,0.0,0.086776,,"binance,mexc,gate",100000000.0,10000000.0,24h,active
 417,CVC,Civic,73115266.0,12629998.0,0.0,0.0,0.091189,,"binance,gate",100000000.0,10000000.0,24h,active
 418,USUAL,Usual,72403295.0,27715165.0,0.0,0.0,0.06916,,"binance,mexc,gate",100000000.0,10000000.0,24h,active
-419,USTC,TerraClassicUSD,71819561.0,12575104.0,0.0,0.0,0.0128505,,"binance,mexc,gate",100000000.0,10000000.0,24h,active
+419,USTC,TerraClassicUSD,71819561.0,12575104.0,0.0,0.0,0.0128505,,"mexc,gate",100000000.0,10000000.0,24h,active
 420,ZRC,Zircuit,71519977.0,14435605.0,0.0,0.0,0.03253115,,"mexc,gate",100000000.0,10000000.0,24h,active
 421,BGSC,BugsCoin,70904115.0,4520406.0,0.0,0.0,0.00611105,,"mexc,gate",100000000.0,10000000.0,24h,active
 422,BANANAS31,Banana For Scale,70877433.0,29811379.0,0.0,0.0,0.0070986,,"binance,mexc,gate",100000000.0,10000000.0,24h,active

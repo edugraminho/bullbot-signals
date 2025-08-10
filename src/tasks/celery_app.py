@@ -14,8 +14,6 @@ celery_app = Celery(
     backend=os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/0"),
     include=[
         "src.tasks.monitor_tasks",
-        "src.tasks.telegram_tasks",
-        "src.tasks.telegram_bot_task",
     ],
 )
 
@@ -27,25 +25,22 @@ celery_app.conf.update(
     # Task routing - usar fila padrão para simplificar
     # task_routes={
     #     "src.tasks.monitor_tasks.*": {"queue": "monitor"},
-    #     "src.tasks.telegram_tasks.*": {"queue": "telegram"},
-    #     "src.tasks.telegram_bot_task.*": {"queue": "telegram"},
     # },
     # Concorrência e Performance
     worker_concurrency=settings.celery_worker_count,
-    task_acks_late=settings.celery_task_acknowledge_late,
     worker_prefetch_multiplier=settings.celery_tasks_per_worker,
+    task_acks_late=settings.celery_task_acknowledge_late,
     task_soft_time_limit=settings.celery_task_warning_timeout,
     task_time_limit=settings.celery_task_force_kill_timeout,
+    # Configurações de Memória para ambientes com poucos recursos
+    worker_max_memory_per_child=settings.celery_max_memory_per_child,
     # Beat schedule para monitoramento
     beat_schedule={
-        "monitor-rsi-signals": {
-            "task": "src.tasks.monitor_tasks.monitor_rsi_signals",
-            "schedule": float(settings.signal_monitoring_interval_seconds),
-        },
-        "cleanup-old-signals": {
-            "task": "src.tasks.monitor_tasks.cleanup_old_signals",
-            "schedule": float(settings.database_cleanup_interval_seconds),
-        },
+        # start-monitoring removido - usar endpoint manual /debug/trigger-monitoring
+        # "cleanup-old-signals": {
+        #     "task": "src.tasks.monitor_tasks.cleanup_old_signals",
+        #     "schedule": float(settings.database_cleanup_interval_seconds),
+        # },
         "update-trading-coins": {
             "task": "src.tasks.monitor_tasks.update_trading_coins",
             "schedule": float(

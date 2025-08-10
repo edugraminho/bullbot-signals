@@ -2,21 +2,14 @@
 Rotas de debug e verificação do sistema
 """
 
-from typing import List
-from fastapi import APIRouter, HTTPException, Depends
-from sqlalchemy.orm import Session
-from src.database.connection import get_db
-from src.database.models import SignalHistory
-from src.api.schemas.admin import (
-    CeleryStatusResponse,
-    TelegramTestResponse,
-    RecentSignalResponse,
-)
-from src.integrations.telegram_bot import telegram_client
+from datetime import datetime, timezone
+import os
+
+from fastapi import APIRouter, HTTPException
+
+from src.api.schemas.admin import CeleryStatusResponse
 from src.tasks.celery_app import celery_app
 from src.utils.logger import get_logger
-from datetime import datetime, timedelta, timezone
-import os
 
 logger = get_logger(__name__)
 
@@ -64,64 +57,6 @@ async def get_celery_status():
         raise HTTPException(status_code=500, detail=f"Erro Celery: {str(e)}")
 
 
-@router.get("/telegram-test", response_model=TelegramTestResponse)
-async def test_telegram_connection():
-    """Testar conexão com o bot do Telegram"""
-    try:
-        # Verificar se token está configurado
-        token = os.getenv("TELEGRAM_BOT_TOKEN")
-        if not token:
-            return TelegramTestResponse(
-                connected=False,
-                error_message="TELEGRAM_BOT_TOKEN não configurado no .env",
-            )
-
-        # Testar conexão
-        is_connected = await telegram_client.test_connection()
-
-        if is_connected:
-            # Obter informações do bot
-            bot_info = await telegram_client.bot.get_me()
-            return TelegramTestResponse(
-                connected=True,
-                bot_username=bot_info.username,
-                bot_id=bot_info.id,
-            )
-        else:
-            return TelegramTestResponse(
-                connected=False, error_message="Falha na conexão com o Telegram"
-            )
-
-    except Exception as e:
-        logger.error(f"❌ Erro no teste do Telegram: {e}")
-        return TelegramTestResponse(connected=False, error_message=str(e))
-
-
-@router.get("/last-signals", response_model=List[RecentSignalResponse])
-async def get_recent_signals(
-    limit: int = 50, hours: int = 24, db: Session = Depends(get_db)
-):
-    """Obter sinais recentes"""
-    try:
-        # Calcular timestamp de corte
-        cutoff_time = datetime.now(timezone.utc) - timedelta(hours=hours)
-
-        # Buscar sinais recentes
-        signals = (
-            db.query(SignalHistory)
-            .filter(SignalHistory.created_at >= cutoff_time)
-            .order_by(SignalHistory.created_at.desc())
-            .limit(limit)
-            .all()
-        )
-
-        return signals
-
-    except Exception as e:
-        logger.error(f"❌ Erro ao buscar sinais recentes: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
 @router.get("/system-health")
 async def check_system_health():
     """Verificação geral de saúde do sistema"""
@@ -133,7 +68,7 @@ async def check_system_health():
         }
 
         # Verificar variáveis de ambiente essenciais
-        env_vars = ["TELEGRAM_BOT_TOKEN", "CELERY_BROKER_URL", "CELERY_RESULT_BACKEND"]
+        env_vars = ["CELERY_BROKER_URL", "CELERY_RESULT_BACKEND"]
 
         for var in env_vars:
             health_status["checks"][f"env_{var.lower()}"] = {
@@ -151,18 +86,6 @@ async def check_system_health():
             }
         except Exception as e:
             health_status["checks"]["celery_workers"] = {
-                "status": "error",
-                "error": str(e),
-            }
-
-        # Verificar Telegram
-        try:
-            telegram_connected = await telegram_client.test_connection()
-            health_status["checks"]["telegram_bot"] = {
-                "status": "ok" if telegram_connected else "disconnected"
-            }
-        except Exception as e:
-            health_status["checks"]["telegram_bot"] = {
                 "status": "error",
                 "error": str(e),
             }

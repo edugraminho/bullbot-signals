@@ -17,14 +17,12 @@ ta==0.11.0
 
 # Async Processing
 celery==5.3.4
-flower==2.0.1
 
 # HTTP Client
 httpx==0.26.0
 aiohttp==3.9.3
 
-# Messaging
-python-telegram-bot==20.8
+
 
 # Configuration & Environment
 python-dotenv==1.0.1
@@ -44,5 +42,4 @@ gate-api==6.103.0
 
 # Utilities
 python-dateutil==2.8.2
-pytz==2024.1
-schedule==1.2.1 
+pytz==2024.1 

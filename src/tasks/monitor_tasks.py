@@ -13,9 +13,7 @@ from src.core.services.rsi_service import RSIService
 from src.core.services.signal_filter import signal_filter
 from src.database.connection import SessionLocal
 from src.database.models import MonitoringConfig, SignalHistory
-from src.integrations.telegram_bot import telegram_client
 from src.tasks.celery_app import celery_app
-from src.tasks.telegram_tasks import send_telegram_signal
 from src.utils.config import settings
 from src.utils.logger import get_logger
 from src.utils.trading_coins import trading_coins
@@ -86,7 +84,8 @@ def update_trading_coins(self):
 @celery_app.task(bind=True)
 def monitor_rsi_signals(self):
     """
-    Task principal de monitoramento - executa a cada 5 minutos (config no celery_app.py)
+    Task principal de monitoramento - executa sequencialmente
+    Agenda próxima execução 1 minuto após término
     """
     cycle_start_time = time.time()
 
@@ -99,45 +98,67 @@ def monitor_rsi_signals(self):
         symbols = get_active_symbols()
         if not symbols:
             logger.warning("Nenhum símbolo configurado para monitoramento")
+            # Agendar próxima execução mesmo sem símbolos
+            self.apply_async(countdown=60)
             return {"status": "no_symbols"}
 
         # Distribuir símbolos por exchange para rate limiting
         symbol_batches = distribute_symbols_by_exchange(symbols)
 
-        # Criar tasks paralelas para cada batch
-        job_group = group(
-            process_symbol_batch.s(exchange, batch_symbols)
-            for exchange, batch_symbols in symbol_batches.items()
-        )
+        # Criar chain sequencial de tasks
+        from celery import chord
 
-        # Executar em paralelo
-        result = job_group.apply_async()
+        # Filtrar exchanges com símbolos
+        exchanges_with_symbols = {
+            exchange: batch_symbols
+            for exchange, batch_symbols in symbol_batches.items()
+            if batch_symbols
+        }
+
+        if not exchanges_with_symbols:
+            logger.warning("Nenhuma exchange com símbolos para processar")
+            # Agendar próxima execução mesmo sem exchanges
+            self.apply_async(countdown=60)
+            return {"status": "no_exchanges"}
+
+        # Criar lista de tasks para executar
+        tasks_list = []
+        for exchange, batch_symbols in exchanges_with_symbols.items():
+            logger.info(f"🔄 Preparando {exchange} ({len(batch_symbols)} símbolos)...")
+            tasks_list.append(process_symbol_batch.s(exchange, batch_symbols))
+
+        # Usar chord para executar sequencialmente e aguardar resultados
+
+        callback = finalize_monitoring_cycle.s(
+            cycle_start_time=cycle_start_time,
+            total_symbols=len(symbols),
+            total_exchanges=len(exchanges_with_symbols),
+        ).set(link=schedule_next_monitoring.s())
+
+        chord(tasks_list, callback).apply_async()
 
         cycle_duration = time.time() - cycle_start_time
         logger.info(
-            f"✅ Ciclo iniciado: {len(symbols)} símbolos em {len(symbol_batches)} exchanges "
+            f"✅ Chord iniciado: {len(symbols)} símbolos em {len(exchanges_with_symbols)} exchanges "
             f"(inicialização: {cycle_duration:.2f}s)"
         )
         logger.info("-" * 60)
 
-        # Agendar callback para log de fim de ciclo
-        finalize_monitoring_cycle.delay(
-            cycle_start_time, len(symbols), len(symbol_batches)
-        )
-
         return {
-            "status": "started",
+            "status": "chord_started",
             "total_symbols": len(symbols),
-            "batches": len(symbol_batches),
-            "job_id": result.id,
+            "exchanges": len(exchanges_with_symbols),
             "cycle_start_time": cycle_start_time,
+            "processing_mode": "sequential_chord",
         }
 
     except Exception as e:
         cycle_duration = time.time() - cycle_start_time
         logger.error(
-            f"❌ Erro no monitoramento principal: {e} (ciclo: {cycle_duration:.2f}s)"
+            f"❌ Erro no monitoramento sequencial: {e} (ciclo: {cycle_duration:.2f}s)"
         )
+        # Agendar próxima execução mesmo em caso de erro
+        self.apply_async(countdown=60)
         return {"status": "error", "error": str(e)}
 
 
@@ -242,7 +263,7 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
             )
             raise self.retry(countdown=task_config.retry_countdown, exc=e)
 
-        return {"status": "failed", "exchange": exchange, "error": str(e)}
+        return {"status": "error", "error": str(e)}
 
 
 def process_single_symbol(
@@ -263,6 +284,8 @@ def process_single_symbol(
     Returns:
         Resultado do processamento
     """
+    symbol_start_time = time.time()  # Adicionar timing para processamento
+
     try:
         # Buscar RSI (usando async em context)
         loop = asyncio.new_event_loop()
@@ -302,49 +325,83 @@ def process_single_symbol(
         )
 
         if should_send:
-            # Verificar se há assinantes ativos antes de enviar
-
-            chat_ids = loop.run_until_complete(
-                telegram_client.get_active_subscribers(symbol)
-            )
-
-            if not chat_ids:
-                logger.debug(f"Nenhum assinante ativo para {symbol} - sinal ignorado")
-                return {
-                    "status": "no_subscribers",
-                    "symbol": symbol,
-                    "rsi_value": rsi_data.value,
-                }
-
-            # Enviar sinal via Telegram (task assíncrona)
-            # Criar dicionário serializável com os dados do sinal
-            signal_data = {
-                "symbol": symbol,
-                "signal_type": analysis.signal.signal_type.value,
-                "rsi_value": float(rsi_data.value),
-                "current_price": float(rsi_data.current_price),
-                "strength": analysis.signal.strength.value,
-                "timeframe": analysis.signal.timeframe,
-                "message": analysis.signal.message,
-                "source": rsi_data.source,
-                "timestamp": rsi_data.timestamp.isoformat(),
-            }
-
-            send_telegram_signal.delay(signal_data)
-
             # Marcar sinal como enviado
             loop.run_until_complete(signal_filter.mark_signal_sent(symbol, analysis))
 
+            # Salvar sinal no banco de dados
+            try:
+                db = SessionLocal()
+
+                # Criar registro do sinal
+                signal_record = SignalHistory(
+                    symbol=symbol,
+                    signal_type=analysis.signal.signal_type.value,
+                    strength=analysis.signal.strength.value,
+                    price=float(rsi_data.current_price),
+                    timeframe=rsi_timeframe,
+                    source=exchange,
+                    message=f"RSI {float(rsi_data.value):.2f} - {analysis.signal.signal_type.value} signal",
+                    indicator_type=["RSI"],
+                    indicator_data={
+                        "rsi_value": float(rsi_data.value),
+                        "rsi_window": rsi_window,
+                        "oversold_level": float(rsi_service.rsi_levels.oversold),
+                        "overbought_level": float(rsi_service.rsi_levels.overbought),
+                    },
+                    indicator_config={
+                        "rsi_window": rsi_window,
+                        "timeframe": rsi_timeframe,
+                        "exchange": exchange,
+                    },
+                    volume_24h=float(rsi_data.volume_24h)
+                    if hasattr(rsi_data, "volume_24h")
+                    and rsi_data.volume_24h is not None
+                    else None,
+                    price_change_24h=float(rsi_data.price_change_24h)
+                    if hasattr(rsi_data, "price_change_24h")
+                    and rsi_data.price_change_24h is not None
+                    else None,
+                    confidence_score=float(analysis.confidence_score)
+                    if hasattr(analysis, "confidence_score")
+                    and analysis.confidence_score is not None
+                    else None,
+                    combined_score=float(analysis.combined_score)
+                    if hasattr(analysis, "combined_score")
+                    and analysis.combined_score is not None
+                    else None,
+                    processed=False,  # Aguardando processamento pelo bot do Telegram
+                    processing_time_ms=int((time.time() - symbol_start_time) * 1000),
+                )
+
+                db.add(signal_record)
+                db.commit()
+                db.refresh(signal_record)  # Atualizar objeto com ID
+                signal_id = signal_record.id
+                db.close()
+
+                logger.info(
+                    f"💾 SINAL SALVO NO BANCO: {symbol} | {analysis.signal.signal_type.value} | "
+                    f"RSI: {float(rsi_data.value):.2f} | ID: {signal_id}"
+                )
+
+            except Exception as db_error:
+                logger.error(f"❌ Erro ao salvar sinal no banco: {db_error}")
+                signal_id = None
+                if "db" in locals():
+                    db.rollback()
+                    db.close()
+
             logger.info(
-                f"📡 🚀 SINAL ENVIADO: {symbol} | {analysis.signal.signal_type.value} | "
-                f"RSI: {rsi_data.value:.2f} | {len(chat_ids)} assinantes"
+                f"📡 🚀 SINAL DETECTADO: {symbol} | {analysis.signal.signal_type.value} | "
+                f"RSI: {float(rsi_data.value):.2f}"
             )
 
             return {
                 "status": "signal_sent",
                 "symbol": symbol,
                 "signal_type": analysis.signal.signal_type.value,
-                "rsi_value": rsi_data.value,
+                "rsi_value": float(rsi_data.value),
+                "signal_id": signal_id,
             }
 
         else:
@@ -476,31 +533,59 @@ def cleanup_old_signals():
 
 @celery_app.task
 def finalize_monitoring_cycle(
-    cycle_start_time: float, total_symbols: int, total_batches: int
+    *batch_results, cycle_start_time: float, total_symbols: int, total_exchanges: int
 ):
-    """Task para finalizar logs do ciclo de monitoramento"""
+    """Task para finalizar logs do ciclo de monitoramento sequencial"""
     try:
-        # Aguardar um tempo para que os batches terminem
-        import time
-
-        time.sleep(10)  # 10 segundos de delay para permitir que os batches terminem
-
         cycle_duration = time.time() - cycle_start_time
+
+        # Calcular estatísticas totais dos batches
+        total_successful = 0
+        total_filtered = 0
+        total_errors = 0
+        total_no_data = 0
+
+        for result in batch_results:
+            if isinstance(result, dict):
+                total_successful += result.get("successful", 0)
+                total_filtered += result.get("filtered", 0)
+                total_errors += result.get("errors", 0)
+                total_no_data += result.get("no_data", 0)
+
         logger.info("-" * 60)
-        logger.info("🏁 FINALIZANDO CICLO DE MONITORAMENTO RSI")
+        logger.info("🏁 CICLO SEQUENCIAL CONCLUÍDO")
         logger.info(
-            f"📊 Total processado: {total_symbols} símbolos em {total_batches} batches"
+            f"📊 Total: {total_symbols} símbolos em {total_exchanges} exchanges"
         )
-        logger.info(f"⏱️ Duração total do ciclo: {cycle_duration:.2f}s")
+        logger.info(f"✅ Sinais: {total_successful} | 🚫 Filtrados: {total_filtered}")
+        logger.info(f"❌ Erros: {total_errors} | 📭 Sem dados: {total_no_data}")
+        logger.info(f"⏱️ Duração total: {cycle_duration:.2f}s")
         logger.info("=" * 60)
 
         return {
             "status": "cycle_finalized",
             "total_duration": cycle_duration,
             "total_symbols": total_symbols,
-            "total_batches": total_batches,
+            "total_exchanges": total_exchanges,
+            "total_successful": total_successful,
+            "total_filtered": total_filtered,
+            "total_errors": total_errors,
+            "total_no_data": total_no_data,
         }
 
     except Exception as e:
         logger.error(f"❌ Erro ao finalizar ciclo: {e}")
+        return {"status": "error", "error": str(e)}
+
+
+@celery_app.task
+def schedule_next_monitoring(*args):
+    """Task para agendar próxima execução do monitoramento"""
+    try:
+        # Agendar próxima execução em 1 minuto
+        monitor_rsi_signals.apply_async(countdown=60)
+        logger.info("⏰ Próxima execução agendada em 1 minuto")
+        return {"status": "next_scheduled", "delay_seconds": 60}
+    except Exception as e:
+        logger.error(f"❌ Erro ao agendar próxima execução: {e}")
         return {"status": "error", "error": str(e)}

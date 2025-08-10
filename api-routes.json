@@ -188,404 +188,6 @@
                 }
             }
         },
-        "/admin/monitoring/configs": {
-            "get": {
-                "tags": [
-                    "Admin"
-                ],
-                "summary": "List Monitoring Configs",
-                "description": "Listar todas as configurações de monitoramento",
-                "operationId": "list_monitoring_configs_admin_monitoring_configs_get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "items": {
-                                        "$ref": "#/components/schemas/MonitoringConfigResponse"
-                                    },
-                                    "type": "array",
-                                    "title": "Response List Monitoring Configs Admin Monitoring Configs Get"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Admin"
-                ],
-                "summary": "Create Monitoring Config",
-                "description": "Criar nova configuração de monitoramento",
-                "operationId": "create_monitoring_config_admin_monitoring_configs_post",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/MonitoringConfigCreate"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/MonitoringConfigResponse"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/monitoring/configs/{config_id}": {
-            "get": {
-                "tags": [
-                    "Admin"
-                ],
-                "summary": "Get Monitoring Config",
-                "description": "Obter configuração específica",
-                "operationId": "get_monitoring_config_admin_monitoring_configs__config_id__get",
-                "parameters": [
-                    {
-                        "name": "config_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "title": "Config Id"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/MonitoringConfigResponse"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Admin"
-                ],
-                "summary": "Update Monitoring Config",
-                "description": "Atualizar configuração existente",
-                "operationId": "update_monitoring_config_admin_monitoring_configs__config_id__put",
-                "parameters": [
-                    {
-                        "name": "config_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "title": "Config Id"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/MonitoringConfigUpdate"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/MonitoringConfigResponse"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Admin"
-                ],
-                "summary": "Delete Monitoring Config",
-                "description": "Deletar configuração",
-                "operationId": "delete_monitoring_config_admin_monitoring_configs__config_id__delete",
-                "parameters": [
-                    {
-                        "name": "config_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "integer",
-                            "title": "Config Id"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/telegram/subscriptions": {
-            "get": {
-                "tags": [
-                    "Admin"
-                ],
-                "summary": "List Telegram Subscriptions",
-                "description": "Listar todas as assinaturas do Telegram",
-                "operationId": "list_telegram_subscriptions_admin_telegram_subscriptions_get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "items": {
-                                        "$ref": "#/components/schemas/TelegramSubscriptionResponse"
-                                    },
-                                    "type": "array",
-                                    "title": "Response List Telegram Subscriptions Admin Telegram Subscriptions Get"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "post": {
-                "tags": [
-                    "Admin"
-                ],
-                "summary": "Create Telegram Subscription",
-                "description": "Criar nova assinatura do Telegram",
-                "operationId": "create_telegram_subscription_admin_telegram_subscriptions_post",
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/TelegramSubscriptionCreate"
-                            }
-                        }
-                    },
-                    "required": true
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TelegramSubscriptionResponse"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/admin/telegram/subscriptions/{chat_id}": {
-            "get": {
-                "tags": [
-                    "Admin"
-                ],
-                "summary": "Get Telegram Subscription",
-                "description": "Obter assinatura específica",
-                "operationId": "get_telegram_subscription_admin_telegram_subscriptions__chat_id__get",
-                "parameters": [
-                    {
-                        "name": "chat_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "title": "Chat Id"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TelegramSubscriptionResponse"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "put": {
-                "tags": [
-                    "Admin"
-                ],
-                "summary": "Update Telegram Subscription",
-                "description": "Atualizar assinatura existente",
-                "operationId": "update_telegram_subscription_admin_telegram_subscriptions__chat_id__put",
-                "parameters": [
-                    {
-                        "name": "chat_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "title": "Chat Id"
-                        }
-                    }
-                ],
-                "requestBody": {
-                    "required": true,
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/TelegramSubscriptionUpdate"
-                            }
-                        }
-                    }
-                },
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TelegramSubscriptionResponse"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            "delete": {
-                "tags": [
-                    "Admin"
-                ],
-                "summary": "Delete Telegram Subscription",
-                "description": "Deletar assinatura",
-                "operationId": "delete_telegram_subscription_admin_telegram_subscriptions__chat_id__delete",
-                "parameters": [
-                    {
-                        "name": "chat_id",
-                        "in": "path",
-                        "required": true,
-                        "schema": {
-                            "type": "string",
-                            "title": "Chat Id"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {}
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
         "/admin/status": {
             "get": {
                 "tags": [
@@ -608,6 +210,228 @@
                 }
             }
         },
+        "/admin/signals/unprocessed": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get Unprocessed Signals",
+                "description": "Obter sinais não processados (para bot do Telegram)",
+                "operationId": "get_unprocessed_signals_admin_signals_unprocessed_get",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 200,
+                            "minimum": 1,
+                            "description": "Número de sinais",
+                            "default": 50,
+                            "title": "Limit"
+                        },
+                        "description": "Número de sinais"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SignalResponse"
+                                    },
+                                    "title": "Response Get Unprocessed Signals Admin Signals Unprocessed Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/signals/{signal_id}/mark-processed": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Mark Signal Processed",
+                "description": "Marcar sinal como processado",
+                "operationId": "mark_signal_processed_admin_signals__signal_id__mark_processed_post",
+                "parameters": [
+                    {
+                        "name": "signal_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Signal Id"
+                        }
+                    },
+                    {
+                        "name": "processed_by",
+                        "in": "query",
+                        "required": true,
+                        "schema": {
+                            "type": "string",
+                            "description": "Identificação do serviço que processou",
+                            "title": "Processed By"
+                        },
+                        "description": "Identificação do serviço que processou"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {}
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/signals/recent": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get Recent Signals",
+                "description": "Obter sinais recentes (para debug/monitoramento)",
+                "operationId": "get_recent_signals_admin_signals_recent_get",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 50,
+                            "minimum": 1,
+                            "description": "Número de sinais",
+                            "default": 10,
+                            "title": "Limit"
+                        },
+                        "description": "Número de sinais"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SignalResponse"
+                                    },
+                                    "title": "Response Get Recent Signals Admin Signals Recent Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/signals/last": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Get Last Signals",
+                "description": "Obter sinais das últimas X horas (para debug/monitoramento)",
+                "operationId": "get_last_signals_admin_signals_last_get",
+                "parameters": [
+                    {
+                        "name": "limit",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 200,
+                            "minimum": 1,
+                            "description": "Número de sinais",
+                            "default": 50,
+                            "title": "Limit"
+                        },
+                        "description": "Número de sinais"
+                    },
+                    {
+                        "name": "hours",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 168,
+                            "minimum": 1,
+                            "description": "Horas para trás",
+                            "default": 24,
+                            "title": "Hours"
+                        },
+                        "description": "Horas para trás"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/SignalResponse"
+                                    },
+                                    "title": "Response Get Last Signals Admin Signals Last Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/debug/celery-status": {
             "get": {
                 "tags": [
@@ -623,86 +447,6 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/CeleryStatusResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/debug/telegram-test": {
-            "get": {
-                "tags": [
-                    "Debug"
-                ],
-                "summary": "Test Telegram Connection",
-                "description": "Testar conexão com o bot do Telegram",
-                "operationId": "test_telegram_connection_debug_telegram_test_get",
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/TelegramTestResponse"
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        "/debug/last-signals": {
-            "get": {
-                "tags": [
-                    "Debug"
-                ],
-                "summary": "Get Recent Signals",
-                "description": "Obter sinais recentes",
-                "operationId": "get_recent_signals_debug_last_signals_get",
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": 50,
-                            "title": "Limit"
-                        }
-                    },
-                    {
-                        "name": "hours",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "default": 24,
-                            "title": "Hours"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Successful Response",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/RecentSignalResponse"
-                                    },
-                                    "title": "Response Get Recent Signals Debug Last Signals Get"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
                                 }
                             }
                         }
@@ -817,13 +561,9 @@
                         "type": "integer",
                         "title": "Active Workers"
                     },
-                    "total_tasks": {
+                    "scheduled_tasks": {
                         "type": "integer",
-                        "title": "Total Tasks"
-                    },
-                    "completed_tasks": {
-                        "type": "integer",
-                        "title": "Completed Tasks"
+                        "title": "Scheduled Tasks"
                     },
                     "failed_tasks": {
                         "type": "integer",
@@ -857,8 +597,7 @@
                 "type": "object",
                 "required": [
                     "active_workers",
-                    "total_tasks",
-                    "completed_tasks",
+                    "scheduled_tasks",
                     "failed_tasks",
                     "monitoring_task_last_run",
                     "monitoring_task_next_run"
@@ -905,206 +644,6 @@
                 ],
                 "title": "HealthResponse",
                 "description": "DTO para health check"
-            },
-            "MonitoringConfigCreate": {
-                "properties": {
-                    "name": {
-                        "type": "string",
-                        "maxLength": 50,
-                        "title": "Name",
-                        "description": "Nome da configuração"
-                    },
-                    "symbols": {
-                        "items": {
-                            "type": "string"
-                        },
-                        "type": "array",
-                        "title": "Symbols",
-                        "description": "Lista de símbolos para monitorar"
-                    },
-                    "rsi_oversold": {
-                        "type": "integer",
-                        "maximum": 50,
-                        "minimum": 1,
-                        "title": "Rsi Oversold",
-                        "description": "Limite de sobrevenda",
-                        "default": 30
-                    },
-                    "rsi_overbought": {
-                        "type": "integer",
-                        "maximum": 100,
-                        "minimum": 50,
-                        "title": "Rsi Overbought",
-                        "description": "Limite de sobrecompra",
-                        "default": 70
-                    },
-                    "timeframes": {
-                        "items": {
-                            "type": "string"
-                        },
-                        "type": "array",
-                        "title": "Timeframes",
-                        "description": "Timeframes para análise",
-                        "default": [
-                            "15m",
-                            "1h",
-                            "4h"
-                        ]
-                    },
-                    "active": {
-                        "type": "boolean",
-                        "title": "Active",
-                        "description": "Se a configuração está ativa",
-                        "default": true
-                    }
-                },
-                "type": "object",
-                "required": [
-                    "name",
-                    "symbols"
-                ],
-                "title": "MonitoringConfigCreate",
-                "description": "Schema para criar configuração de monitoramento"
-            },
-            "MonitoringConfigResponse": {
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "title": "Id"
-                    },
-                    "name": {
-                        "type": "string",
-                        "title": "Name"
-                    },
-                    "symbols": {
-                        "items": {
-                            "type": "string"
-                        },
-                        "type": "array",
-                        "title": "Symbols"
-                    },
-                    "rsi_oversold": {
-                        "type": "integer",
-                        "title": "Rsi Oversold"
-                    },
-                    "rsi_overbought": {
-                        "type": "integer",
-                        "title": "Rsi Overbought"
-                    },
-                    "timeframes": {
-                        "items": {
-                            "type": "string"
-                        },
-                        "type": "array",
-                        "title": "Timeframes"
-                    },
-                    "active": {
-                        "type": "boolean",
-                        "title": "Active"
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "title": "Updated At"
-                    }
-                },
-                "type": "object",
-                "required": [
-                    "id",
-                    "name",
-                    "symbols",
-                    "rsi_oversold",
-                    "rsi_overbought",
-                    "timeframes",
-                    "active",
-                    "updated_at"
-                ],
-                "title": "MonitoringConfigResponse",
-                "description": "Schema de resposta para configuração de monitoramento"
-            },
-            "MonitoringConfigUpdate": {
-                "properties": {
-                    "name": {
-                        "anyOf": [
-                            {
-                                "type": "string",
-                                "maxLength": 50
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Name"
-                    },
-                    "symbols": {
-                        "anyOf": [
-                            {
-                                "items": {
-                                    "type": "string"
-                                },
-                                "type": "array"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Symbols"
-                    },
-                    "rsi_oversold": {
-                        "anyOf": [
-                            {
-                                "type": "integer",
-                                "maximum": 50,
-                                "minimum": 1
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Rsi Oversold"
-                    },
-                    "rsi_overbought": {
-                        "anyOf": [
-                            {
-                                "type": "integer",
-                                "maximum": 100,
-                                "minimum": 50
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Rsi Overbought"
-                    },
-                    "timeframes": {
-                        "anyOf": [
-                            {
-                                "items": {
-                                    "type": "string"
-                                },
-                                "type": "array"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Timeframes"
-                    },
-                    "active": {
-                        "anyOf": [
-                            {
-                                "type": "boolean"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Active"
-                    }
-                },
-                "type": "object",
-                "title": "MonitoringConfigUpdate",
-                "description": "Schema para atualizar configuração de monitoramento"
             },
             "MultipleRSIResponse": {
                 "properties": {
@@ -1189,7 +728,7 @@
                 "title": "RSIResponse",
                 "description": "DTO para resposta de consulta de RSI"
             },
-            "RecentSignalResponse": {
+            "SignalResponse": {
                 "properties": {
                     "id": {
                         "type": "integer",
@@ -1198,10 +737,6 @@
                     "symbol": {
                         "type": "string",
                         "title": "Symbol"
-                    },
-                    "rsi_value": {
-                        "type": "number",
-                        "title": "Rsi Value"
                     },
                     "signal_type": {
                         "type": "string",
@@ -1223,9 +758,69 @@
                         "type": "string",
                         "title": "Source"
                     },
-                    "telegram_sent": {
+                    "message": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "indicator_type": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Indicator Type"
+                    },
+                    "indicator_data": {
+                        "type": "object",
+                        "title": "Indicator Data"
+                    },
+                    "confidence_score": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Confidence Score"
+                    },
+                    "combined_score": {
+                        "anyOf": [
+                            {
+                                "type": "number"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Combined Score"
+                    },
+                    "processed": {
                         "type": "boolean",
-                        "title": "Telegram Sent"
+                        "title": "Processed"
+                    },
+                    "processed_at": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Processed At"
+                    },
+                    "processed_by": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Processed By"
                     },
                     "created_at": {
                         "type": "string",
@@ -1237,17 +832,23 @@
                 "required": [
                     "id",
                     "symbol",
-                    "rsi_value",
                     "signal_type",
                     "strength",
                     "price",
                     "timeframe",
                     "source",
-                    "telegram_sent",
+                    "message",
+                    "indicator_type",
+                    "indicator_data",
+                    "confidence_score",
+                    "combined_score",
+                    "processed",
+                    "processed_at",
+                    "processed_by",
                     "created_at"
                 ],
-                "title": "RecentSignalResponse",
-                "description": "Schema de resposta para sinais recentes"
+                "title": "SignalResponse",
+                "description": "Schema de resposta para sinais"
             },
             "SystemStatusResponse": {
                 "properties": {
@@ -1259,221 +860,29 @@
                         "type": "integer",
                         "title": "Active Configs"
                     },
-                    "telegram_subscriptions": {
-                        "type": "integer",
-                        "title": "Telegram Subscriptions"
-                    },
-                    "active_subscriptions": {
-                        "type": "integer",
-                        "title": "Active Subscriptions"
-                    },
                     "last_signal_count_24h": {
                         "type": "integer",
                         "title": "Last Signal Count 24H"
                     },
+                    "unprocessed_signals": {
+                        "type": "integer",
+                        "title": "Unprocessed Signals"
+                    },
                     "celery_workers_active": {
                         "type": "boolean",
                         "title": "Celery Workers Active"
-                    },
-                    "telegram_bot_connected": {
-                        "type": "boolean",
-                        "title": "Telegram Bot Connected"
                     }
                 },
                 "type": "object",
                 "required": [
                     "monitoring_configs",
                     "active_configs",
-                    "telegram_subscriptions",
-                    "active_subscriptions",
                     "last_signal_count_24h",
-                    "celery_workers_active",
-                    "telegram_bot_connected"
+                    "unprocessed_signals",
+                    "celery_workers_active"
                 ],
                 "title": "SystemStatusResponse",
                 "description": "Schema de resposta para status do sistema"
-            },
-            "TelegramSubscriptionCreate": {
-                "properties": {
-                    "chat_id": {
-                        "type": "string",
-                        "title": "Chat Id",
-                        "description": "ID do chat do Telegram"
-                    },
-                    "chat_type": {
-                        "type": "string",
-                        "title": "Chat Type",
-                        "description": "Tipo do chat (private, group, channel)",
-                        "default": "private"
-                    },
-                    "symbols_filter": {
-                        "anyOf": [
-                            {
-                                "items": {
-                                    "type": "string"
-                                },
-                                "type": "array"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Symbols Filter",
-                        "description": "Filtro de símbolos específicos"
-                    },
-                    "active": {
-                        "type": "boolean",
-                        "title": "Active",
-                        "description": "Se a assinatura está ativa",
-                        "default": true
-                    }
-                },
-                "type": "object",
-                "required": [
-                    "chat_id"
-                ],
-                "title": "TelegramSubscriptionCreate",
-                "description": "Schema para criar assinatura do Telegram"
-            },
-            "TelegramSubscriptionResponse": {
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "title": "Id"
-                    },
-                    "chat_id": {
-                        "type": "string",
-                        "title": "Chat Id"
-                    },
-                    "chat_type": {
-                        "type": "string",
-                        "title": "Chat Type"
-                    },
-                    "symbols_filter": {
-                        "anyOf": [
-                            {
-                                "items": {
-                                    "type": "string"
-                                },
-                                "type": "array"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Symbols Filter"
-                    },
-                    "active": {
-                        "type": "boolean",
-                        "title": "Active"
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "title": "Created At"
-                    }
-                },
-                "type": "object",
-                "required": [
-                    "id",
-                    "chat_id",
-                    "chat_type",
-                    "symbols_filter",
-                    "active",
-                    "created_at"
-                ],
-                "title": "TelegramSubscriptionResponse",
-                "description": "Schema de resposta para assinatura do Telegram"
-            },
-            "TelegramSubscriptionUpdate": {
-                "properties": {
-                    "chat_type": {
-                        "anyOf": [
-                            {
-                                "type": "string"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Chat Type"
-                    },
-                    "symbols_filter": {
-                        "anyOf": [
-                            {
-                                "items": {
-                                    "type": "string"
-                                },
-                                "type": "array"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Symbols Filter"
-                    },
-                    "active": {
-                        "anyOf": [
-                            {
-                                "type": "boolean"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Active"
-                    }
-                },
-                "type": "object",
-                "title": "TelegramSubscriptionUpdate",
-                "description": "Schema para atualizar assinatura do Telegram"
-            },
-            "TelegramTestResponse": {
-                "properties": {
-                    "connected": {
-                        "type": "boolean",
-                        "title": "Connected"
-                    },
-                    "bot_username": {
-                        "anyOf": [
-                            {
-                                "type": "string"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Bot Username"
-                    },
-                    "bot_id": {
-                        "anyOf": [
-                            {
-                                "type": "integer"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Bot Id"
-                    },
-                    "error_message": {
-                        "anyOf": [
-                            {
-                                "type": "string"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Error Message"
-                    }
-                },
-                "type": "object",
-                "required": [
-                    "connected"
-                ],
-                "title": "TelegramTestResponse",
-                "description": "Schema de resposta para teste do Telegram"
             },
             "ValidationError": {
                 "properties": {

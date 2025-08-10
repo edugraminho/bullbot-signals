@@ -12,9 +12,15 @@ services:
       - .env
     networks:
       - bullbot_network
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+        reservations:
+          memory: 200M
 
   db:
-    image: postgres:17.1
+    image: postgres:17.1-alpine
     env_file:
       - .env
     ports:
@@ -23,11 +29,23 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - bullbot_network
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+        reservations:
+          memory: 100M
+    command: >
+      postgres
+      -c max_connections=20
+      -c shared_buffers=32MB
+      -c effective_cache_size=128MB
+      -c maintenance_work_mem=16MB
   
   celery_worker:
     build:
       context: .
-    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=2
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=1 --max-memory-per-child=200000
     volumes:
       - .:/app
     depends_on:
@@ -37,6 +55,12 @@ services:
       - .env
     networks:
       - bullbot_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
       
   celery_beat:
     build:
@@ -51,13 +75,30 @@ services:
       - .env
     networks:
       - bullbot_network
+    deploy:
+      resources:
+        limits:
+          memory: 200M
+        reservations:
+          memory: 100M
 
   redis:
-    image: redis:8.0
+    image: redis:8.0-alpine
     ports:
       - "6379:6379"
     networks:
-      - bullbot_network 
+      - bullbot_network
+    deploy:
+      resources:
+        limits:
+          memory: 100M
+        reservations:
+          memory: 50M
+    command: >
+      redis-server
+      --maxmemory 64mb
+      --maxmemory-policy allkeys-lru
+      --save "" 
 
 volumes:
   pgdata:
