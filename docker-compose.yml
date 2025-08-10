@@ -96,7 +96,7 @@ services:
           memory: 50M
     command: >
       redis-server
-      --maxmemory 64mb
+      --maxmemory 128mb
       --maxmemory-policy allkeys-lru
       --save "" 
 
