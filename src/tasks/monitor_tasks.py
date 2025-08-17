@@ -12,13 +12,13 @@ from celery import group
 from src.core.services.rsi_service import RSIService
 from src.core.services.signal_filter import signal_filter
 from src.database.connection import SessionLocal
-from src.database.models import MonitoringConfig, SignalHistory
+from src.database.models import UserMonitoringConfig, SignalHistory
 from src.tasks.celery_app import celery_app
 from src.utils.config import settings
 from src.utils.logger import get_logger
 from src.utils.trading_coins import trading_coins
 
-logger = get_logger(__name__, level="INFO")
+logger = get_logger(__name__, level="DEBUG")
 
 
 class MonitorTaskConfig:
@@ -91,7 +91,7 @@ def monitor_rsi_signals(self):
 
     try:
         logger.info("=" * 60)
-        logger.info("🚀 INICIANDO CICLO DE MONITORAMENTO RSI 🚀")
+        logger.info("🚀 🚀 INICIANDO CICLO DE MONITORAMENTO RSI 🚀 🚀")
         logger.info("=" * 60)
 
         # Obter configuração ativa
@@ -124,7 +124,7 @@ def monitor_rsi_signals(self):
         # Criar lista de tasks para executar
         tasks_list = []
         for exchange, batch_symbols in exchanges_with_symbols.items():
-            logger.info(f"🔄 Preparando {exchange} ({len(batch_symbols)} símbolos)...")
+            logger.info(f"Preparando {exchange} ({len(batch_symbols)} símbolos)...")
             tasks_list.append(process_symbol_batch.s(exchange, batch_symbols))
 
         # Usar chord para executar sequencialmente e aguardar resultados
@@ -139,7 +139,7 @@ def monitor_rsi_signals(self):
 
         cycle_duration = time.time() - cycle_start_time
         logger.info(
-            f"✅ Chord iniciado: {len(symbols)} símbolos em {len(exchanges_with_symbols)} exchanges "
+            f"Chord iniciado: {len(symbols)} símbolos em {len(exchanges_with_symbols)} exchanges "
             f"(inicialização: {cycle_duration:.2f}s)"
         )
         logger.info("-" * 60)
@@ -174,81 +174,127 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
     batch_start_time = time.time()
 
     try:
-        logger.info(f"🔄 Processando {len(symbols)} símbolos na {exchange}")
+        logger.info(f"Processando {len(symbols)} símbolos na {exchange}")
 
-        # Carregar configurações de monitoramento do banco
-        monitoring_config = get_active_monitoring_config()
+        # Carregar TODAS as configurações de monitoramento ativas
+        monitoring_configs = get_active_monitoring_configs()
 
-        # Criar RSIService com configurações personalizadas se disponível
-        if monitoring_config:
+        # Criar RSIService com configurações agregadas mais sensíveis
+        if monitoring_configs:
             from src.core.models.crypto import RSILevels
 
-            custom_rsi_levels = RSILevels(
-                oversold=monitoring_config.rsi_oversold,
-                overbought=monitoring_config.rsi_overbought,
-            )
-            rsi_service = RSIService(custom_rsi_levels=custom_rsi_levels)
+            # Encontrar os thresholds mais sensíveis de todas as configurações
+            # (menor oversold e maior overbought para capturar todos os sinais)
+            min_oversold = 100
+            max_overbought = 0
+
+            for config in monitoring_configs:
+                if config.indicators_config and "RSI" in config.indicators_config:
+                    rsi_config = config.indicators_config["RSI"]
+                    if rsi_config.get("enabled", False):
+                        oversold = rsi_config.get("oversold", 20)
+                        overbought = rsi_config.get("overbought", 80)
+
+                        min_oversold = min(min_oversold, oversold)
+                        max_overbought = max(max_overbought, overbought)
+
+            # Se nenhuma configuração RSI válida foi encontrada, usar padrão
+            if min_oversold == 100 or max_overbought == 0:
+                logger.warning(
+                    "⚠️ Nenhuma configuração RSI válida encontrada, usando padrão"
+                )
+                rsi_service = RSIService()
+            else:
+                custom_rsi_levels = RSILevels(
+                    oversold=min_oversold,
+                    overbought=max_overbought,
+                )
+                rsi_service = RSIService(custom_rsi_levels=custom_rsi_levels)
+                logger.info(
+                    f"RSI agregado: oversold≤{min_oversold}, overbought≥{max_overbought}"
+                )
         else:
-            # config.py
+            # Usar configuração padrão se não há configurações
+            logger.warning(
+                "⚠️ Nenhuma configuração de monitoramento ativa, usando RSI padrão"
+            )
             rsi_service = RSIService()
 
-        # Processar cada símbolo
+        # Obter timeframes ativos das configurações
+        active_timeframes = get_active_timeframes()
+
+        # Processar cada combinação símbolo+timeframe
         results = []
         successful = 0
         filtered = 0
         errors = 0
         no_data = 0
-
-        for i, symbol in enumerate(symbols, 1):
-            symbol_start_time = time.time()
-
-            result = process_single_symbol(
-                symbol=symbol,
-                exchange=exchange,
-                rsi_service=rsi_service,
-                rsi_window=task_config.rsi_window,
-                rsi_timeframe=task_config.rsi_timeframe,
-            )
-
-            # Contar estatísticas
-            if result.get("status") == "signal_sent":
-                successful += 1
-            elif result.get("status") == "filtered":
-                filtered += 1
-            elif result.get("status") == "no_data":
-                no_data += 1
-            else:
-                errors += 1
-
-            results.append(result)
-
-            # Log de progresso a cada 10 símbolos
-            if i % 10 == 0 or i == len(symbols):
-                symbol_duration = time.time() - symbol_start_time
-                logger.info(
-                    f"📊 {exchange}: {i}/{len(symbols)} símbolos processados "
-                    f"({symbol_duration:.2f}s/símbolo)"
-                )
-
-        batch_duration = time.time() - batch_start_time
-        avg_time_per_symbol = batch_duration / len(symbols) if symbols else 0
+        total_combinations = len(symbols) * len(active_timeframes)
+        processed_count = 0
 
         logger.info(
-            f"✅ Batch {exchange} concluído: {successful}/{len(symbols)} sucessos "
-            f"({batch_duration:.2f}s total, {avg_time_per_symbol:.2f}s/moeda)"
+            f"Processando {len(symbols)} símbolos × {len(active_timeframes)} timeframes = {total_combinations} combinações"
+        )
+
+        for symbol in symbols:
+            for timeframe in active_timeframes:
+                processed_count += 1
+                symbol_start_time = time.time()
+
+                result = process_single_symbol(
+                    symbol=symbol,
+                    exchange=exchange,
+                    rsi_service=rsi_service,
+                    rsi_window=task_config.rsi_window,
+                    rsi_timeframe=timeframe,
+                )
+
+                # Contar estatísticas
+                if result.get("status") == "signal_sent":
+                    successful += 1
+                elif result.get("status") == "filtered":
+                    filtered += 1
+                elif result.get("status") == "no_data":
+                    no_data += 1
+                else:
+                    errors += 1
+
+                results.append(result)
+
+                # Log de progresso a cada 20 combinações ou no final
+                if processed_count % 20 == 0 or processed_count == total_combinations:
+                    symbol_duration = time.time() - symbol_start_time
+                    logger.info(
+                        f"{exchange}: {processed_count}/{total_combinations} combinações processadas "
+                        f"({symbol_duration:.2f}s/combinação)"
+                    )
+
+        batch_duration = time.time() - batch_start_time
+        avg_time_per_combination = (
+            batch_duration / total_combinations if total_combinations else 0
+        )
+
+        logger.info(
+            f"Batch {exchange} concluído: {successful}/{total_combinations} sinais detectados "
+            f"({batch_duration:.2f}s total, {avg_time_per_combination:.2f}s/combinação)"
+        )
+        logger.info(
+            f"{len(symbols)} símbolos × {len(active_timeframes)} timeframes = {total_combinations} combinações"
         )
         logger.info("-" * 40)
 
         return {
             "status": "completed",
             "exchange": exchange,
-            "total": len(symbols),
+            "total_symbols": len(symbols),
+            "total_timeframes": len(active_timeframes),
+            "total_combinations": total_combinations,
             "successful": successful,
             "filtered": filtered,
             "errors": errors,
             "no_data": no_data,
             "duration": batch_duration,
-            "avg_time_per_symbol": avg_time_per_symbol,
+            "avg_time_per_combination": avg_time_per_combination,
         }
 
     except Exception as e:
@@ -259,7 +305,7 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
 
         if self.request.retries < task_config.max_retries:
             logger.info(
-                f"🔄 Reagendando batch {exchange} (tentativa {self.request.retries + 1})"
+                f"Reagendando batch {exchange} (tentativa {self.request.retries + 1})"
             )
             raise self.retry(countdown=task_config.retry_countdown, exc=e)
 
@@ -308,25 +354,44 @@ def process_single_symbol(
 
         # Log breve da moeda e RSI
         logger.debug(
-            f"📊 {symbol}: RSI {rsi_data.value:.2f} | Preço ${rsi_data.current_price}"
+            f"{symbol}: RSI {rsi_data.value:.2f} | Preço ${rsi_data.current_price}"
         )
 
         if not analysis:
-            logger.debug(f"⚪ {symbol}: Zona neutra (RSI: {rsi_data.value:.2f})")
+            logger.debug(f"{symbol}: Zona neutra (RSI: {rsi_data.value:.2f})")
             return {
                 "status": "neutral_zone",
                 "symbol": symbol,
                 "rsi_value": rsi_data.value,
             }
 
-        # Aplicar filtros anti-spam
+        # Obter configurações de filtro dos usuários ativos
+        active_configs = get_active_monitoring_configs()
+        user_filter_configs = []
+        for config in active_configs:
+            if config.filter_config:
+                user_filter_configs.append(config.filter_config)
+
+        # Aplicar filtros anti-spam com configurações personalizadas
         should_send = loop.run_until_complete(
-            signal_filter.should_send_signal(symbol, analysis)
+            signal_filter.should_send_signal(symbol, analysis, user_filter_configs)
         )
 
         if should_send:
-            # Marcar sinal como enviado
-            loop.run_until_complete(signal_filter.mark_signal_sent(symbol, analysis))
+            # Agregar configurações de filtro
+            from src.core.services.signal_filter import SignalFilter
+
+            temp_filter = SignalFilter()
+            aggregated_filter_config = temp_filter._get_user_filter_configs(
+                user_filter_configs
+            )
+
+            # Marcar sinal como enviado com configurações personalizadas
+            loop.run_until_complete(
+                signal_filter.mark_signal_sent(
+                    symbol, analysis, aggregated_filter_config
+                )
+            )
 
             # Salvar sinal no banco de dados
             try:
@@ -405,7 +470,7 @@ def process_single_symbol(
             }
 
         else:
-            logger.debug(f"🔕 {symbol}: Sinal filtrado (RSI: {rsi_data.value:.2f})")
+            logger.debug(f"{symbol}: Sinal filtrado (RSI: {rsi_data.value:.2f})")
             return {"status": "filtered", "symbol": symbol, "rsi_value": rsi_data.value}
 
     except Exception as e:
@@ -418,43 +483,128 @@ def process_single_symbol(
 
 
 def get_active_symbols() -> List[str]:
-    """Obter lista de símbolos ativos para monitoramento"""
+    """Agregar símbolos de TODAS as configurações ativas de usuários"""
     try:
         db = SessionLocal()
-        config = (
-            db.query(MonitoringConfig).filter(MonitoringConfig.active == True).first()  # noqa: E712
+        # Buscar TODAS as configurações ativas (não apenas a primeira)
+        active_configs = (
+            db.query(UserMonitoringConfig)
+            .filter(
+                UserMonitoringConfig.active == True  # noqa: E712
+            )
+            .all()
         )
 
-        if config and config.symbols and len(config.symbols) > 0:
-            # Usar símbolos da configuração do banco
-            symbols = config.symbols
-            logger.info(f"📋 Usando {len(symbols)} símbolos da configuração do banco")
-        else:
-            # Usar lista de trading coins se não há configuração ou lista vazia
-            symbols = trading_coins.get_trading_symbols(limit=500)
-            logger.info(f"📋 Usando {len(symbols)} símbolos da lista de trading coins")
+        if not active_configs:
+            logger.warning("⚠️ Nenhuma configuração de usuário ativa encontrada")
+            db.close()
+            # Fallback para lista padrão apenas se não há configurações
+            fallback_symbols = trading_coins.get_trading_symbols(
+                limit=settings.trading_coins_max_limit
+            )
+            logger.info(
+                f"Usando {len(fallback_symbols)} símbolos do fallback (trading coins)"
+            )
+            return fallback_symbols
+
+        # Agregar símbolos únicos de todas as configurações ativas
+        all_symbols = set()
+        config_count = 0
+
+        for config in active_configs:
+            if config.symbols and len(config.symbols) > 0:
+                all_symbols.update(config.symbols)
+                config_count += 1
+                logger.debug(
+                    f"Config '{config.config_name}' (user {config.user_id}): {len(config.symbols)} símbolos"
+                )
+
+        symbols = list(all_symbols)
+        logger.info(
+            f"Agregados {len(symbols)} símbolos únicos de {config_count} configurações ativas"
+        )
+
+        if len(symbols) == 0:
+            logger.warning("⚠️ Nenhum símbolo encontrado nas configurações ativas")
 
         db.close()
         return symbols
 
     except Exception as e:
-        logger.error(f"❌ Erro ao obter símbolos: {e}")
+        logger.error(f"❌ Erro ao agregar símbolos das configurações: {e}")
         # Fallback para lista padrão em caso de erro
-        return task_config.default_symbols
+        fallback_symbols = task_config.default_symbols
+        logger.info(f"Usando {len(fallback_symbols)} símbolos do fallback padrão")
+        return fallback_symbols
 
 
-def get_active_monitoring_config() -> Optional[MonitoringConfig]:
-    """Obter configuração de monitoramento ativa do banco"""
+def get_active_timeframes() -> List[str]:
+    """Agregar timeframes únicos de TODAS as configurações ativas de usuários"""
     try:
         db = SessionLocal()
-        config = (
-            db.query(MonitoringConfig).filter(MonitoringConfig.active == True).first()  # noqa: E712
+        # Buscar TODAS as configurações ativas
+        active_configs = (
+            db.query(UserMonitoringConfig)
+            .filter(
+                UserMonitoringConfig.active == True  # noqa: E712
+            )
+            .all()
+        )
+
+        if not active_configs:
+            logger.warning("⚠️ Nenhuma configuração de usuário ativa para timeframes")
+            db.close()
+            # Fallback para timeframes padrão
+            default_timeframes = ["15m", "1h", "4h"]
+            logger.info(f"Usando timeframes padrão: {default_timeframes}")
+            return default_timeframes
+
+        # Agregar timeframes únicos de todas as configurações ativas
+        all_timeframes = set()
+        config_count = 0
+
+        for config in active_configs:
+            if config.timeframes and len(config.timeframes) > 0:
+                all_timeframes.update(config.timeframes)
+                config_count += 1
+                logger.debug(
+                    f"Config '{config.config_name}' (user {config.user_id}): {config.timeframes}"
+                )
+
+        timeframes = list(all_timeframes)
+        logger.info(
+            f"Agregados {len(timeframes)} timeframes únicos de {config_count} configurações: {timeframes}"
+        )
+
+        if len(timeframes) == 0:
+            logger.warning("⚠️ Nenhum timeframe encontrado nas configurações ativas")
+            timeframes = ["15m", "1h", "4h"]  # fallback
+
+        db.close()
+        return timeframes
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao agregar timeframes das configurações: {e}")
+        # Fallback para timeframes padrão
+        return ["15m", "1h", "4h"]
+
+
+def get_active_monitoring_configs() -> List[UserMonitoringConfig]:
+    """Obter TODAS as configurações de monitoramento ativas do banco"""
+    try:
+        db = SessionLocal()
+        configs = (
+            db.query(UserMonitoringConfig)
+            .filter(
+                UserMonitoringConfig.active == True  # noqa: E712
+            )
+            .all()
         )
         db.close()
-        return config
+        return configs
     except Exception as e:
-        logger.error(f"❌ Erro ao obter configuração de monitoramento: {e}")
-        return None
+        logger.error(f"❌ Erro ao obter configurações de monitoramento: {e}")
+        return []
 
 
 def distribute_symbols_by_exchange(symbols: List[str]) -> dict:
@@ -553,13 +703,11 @@ def finalize_monitoring_cycle(
                 total_no_data += result.get("no_data", 0)
 
         logger.info("-" * 60)
-        logger.info("🏁 CICLO SEQUENCIAL CONCLUÍDO")
-        logger.info(
-            f"📊 Total: {total_symbols} símbolos em {total_exchanges} exchanges"
-        )
-        logger.info(f"✅ Sinais: {total_successful} | 🚫 Filtrados: {total_filtered}")
-        logger.info(f"❌ Erros: {total_errors} | 📭 Sem dados: {total_no_data}")
-        logger.info(f"⏱️ Duração total: {cycle_duration:.2f}s")
+        logger.info("🏁 🏁 CICLO SEQUENCIAL CONCLUÍDO 🏁 🏁")
+        logger.info(f"Total: {total_symbols} símbolos em {total_exchanges} exchanges")
+        logger.info(f"Sinais: {total_successful} | Filtrados: {total_filtered}")
+        logger.info(f"Erros: {total_errors} | Sem dados: {total_no_data}")
+        logger.info(f"Duração total: {cycle_duration:.2f}s")
         logger.info("=" * 60)
 
         return {
@@ -584,7 +732,7 @@ def schedule_next_monitoring(*args):
     try:
         # Agendar próxima execução em 1 minuto
         monitor_rsi_signals.apply_async(countdown=60)
-        logger.info("⏰ Próxima execução agendada em 1 minuto")
+        logger.info("Próxima execução agendada em 1 minuto")
         return {"status": "next_scheduled", "delay_seconds": 60}
     except Exception as e:
         logger.error(f"❌ Erro ao agendar próxima execução: {e}")

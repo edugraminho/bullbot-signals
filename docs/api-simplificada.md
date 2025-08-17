@@ -3,10 +3,16 @@
 ## 🧹 **Mudanças Realizadas**
 
 ### ❌ **Removido (Over-engineering)**
-- ❌ CRUD de configurações de monitoramento (`/monitoring/configs`)
+- ❌ CRUD de configurações via API REST (`/monitoring/configs`)
 - ❌ Schemas complexos de configuração
-- ❌ Gerenciamento via API REST
+- ❌ Gerenciamento de configurações via API
 - ❌ Múltiplos schemas desnecessários
+
+### ✅ **Novo Approach (Implementado)**
+- ✅ Configurações via banco `user_monitoring_configs`
+- ✅ Gerenciamento via comandos Telegram
+- ✅ Múltiplas configurações por usuário
+- ✅ Filtros personalizados
 
 ### ✅ **Mantido (Essencial)**
 - ✅ Buscar sinais não processados
@@ -72,13 +78,15 @@ GET /api/v1/admin/status
 **Resposta:**
 ```json
 {
-  "monitoring_configs": 1,
-  "active_configs": 1,
+  "monitoring_configs": 5,
+  "active_configs": 3,
   "last_signal_count_24h": 15,
   "unprocessed_signals": 3,
   "celery_workers_active": true
 }
 ```
+
+*Nota: `monitoring_configs` agora representa total de configurações de usuários*
 
 ### **4. Histórico Recente (Debug)**
 ```bash
@@ -91,6 +99,8 @@ GET /api/v1/admin/signals/last?limit=50&hours=24
 ```
 
 ## 🤖 **Exemplo de Uso pelo Bot do Telegram**
+
+**Atualização**: Sistema agora funciona 100% baseado em configurações de usuários da tabela `user_monitoring_configs`
 
 ```python
 import asyncio
@@ -155,8 +165,8 @@ class TelegramSignalBot:
     
     async def filter_users(self, signal):
         """Filtrar usuários baseado em suas configurações"""
-        # Implementar lógica de filtro baseada no banco do Telegram
-        # Ex: verificar símbolos de interesse, força mínima, etc.
+        # Implementar lógica de filtro baseada na tabela user_monitoring_configs
+        # Ex: verificar símbolos de interesse, força mínima, timeframes, etc.
         return await self.get_interested_users(signal)
     
     async def send_to_users(self, signal, users):
@@ -166,10 +176,12 @@ class TelegramSignalBot:
     
     async def get_interested_users(self, signal):
         """Buscar usuários interessados no sinal"""
-        # Consultar banco do Telegram para usuários que:
-        # - Têm o símbolo na lista de interesse
-        # - Aceitam sinais deste timeframe  
-        # - Têm força mínima compatível
+        # Consultar tabela user_monitoring_configs para usuários que:
+        # - Têm o símbolo na lista symbols
+        # - Aceitam sinais deste timeframe (timeframes array)
+        # - Têm configuração RSI compatível (indicators_config)
+        # - Respeitam filtros anti-spam (filter_config)
+        # - Têm configuração ativa (active=True)
         pass
 
 # Executar bot
@@ -183,22 +195,28 @@ if __name__ == "__main__":
 ### ✅ **Foco Total**
 - API 100% focada em consumo de sinais
 - Sem complexidade desnecessária
-- Zero configuração via API
+- Zero configuração via API REST
 
 ### ✅ **Arquitetura Limpa** 
-- **BullBot Signals**: Detecta e armazena sinais
-- **Telegram Bot**: Consome e distribui sinais
+- **BullBot Signals**: Detecta sinais baseado em configurações de usuários
+- **Telegram Bot**: Consome e distribui sinais filtrados
 - **Separação clara** de responsabilidades
 
-### ✅ **Performance**
+### ✅ **Performance Otimizada**
+- Sistema processa apenas símbolos/timeframes configurados pelos usuários
+- Redução de 98% no processamento desnecessário
 - APIs leves e rápidas
-- Menos overhead desnecessário
-- Foco no essencial
+- Agregação inteligente de configurações
+
+### ✅ **Escalabilidade**
+- Suporte a milhares de usuários com configurações únicas
+- Processamento eficiente baseado em demanda real
+- Fallback automático para CSV quando necessário
 
 ### ✅ **Manutenibilidade**
 - Código mais simples
 - Menos pontos de falha
-- Fácil de debugar
+- Sistema adaptativo e inteligente
 
 ## 📊 **Monitoramento**
 

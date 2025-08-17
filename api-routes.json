@@ -210,15 +210,27 @@
                 }
             }
         },
-        "/admin/signals/unprocessed": {
+        "/admin/users": {
             "get": {
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Get Unprocessed Signals",
-                "description": "Obter sinais não processados (para bot do Telegram)",
-                "operationId": "get_unprocessed_signals_admin_signals_unprocessed_get",
+                "summary": "Get All Users",
+                "description": "Listar todos os usuários e suas configurações",
+                "operationId": "get_all_users_admin_users_get",
                 "parameters": [
+                    {
+                        "name": "active_only",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "boolean",
+                            "description": "Filtrar apenas usuários ativos",
+                            "default": false,
+                            "title": "Active Only"
+                        },
+                        "description": "Filtrar apenas usuários ativos"
+                    },
                     {
                         "name": "limit",
                         "in": "query",
@@ -227,11 +239,24 @@
                             "type": "integer",
                             "maximum": 200,
                             "minimum": 1,
-                            "description": "Número de sinais",
+                            "description": "Limite de resultados",
                             "default": 50,
                             "title": "Limit"
                         },
-                        "description": "Número de sinais"
+                        "description": "Limite de resultados"
+                    },
+                    {
+                        "name": "offset",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 0,
+                            "description": "Offset para paginação",
+                            "default": 0,
+                            "title": "Offset"
+                        },
+                        "description": "Offset para paginação"
                     }
                 ],
                 "responses": {
@@ -242,9 +267,9 @@
                                 "schema": {
                                     "type": "array",
                                     "items": {
-                                        "$ref": "#/components/schemas/SignalResponse"
+                                        "$ref": "#/components/schemas/UserConfigResponse"
                                     },
-                                    "title": "Response Get Unprocessed Signals Admin Signals Unprocessed Get"
+                                    "title": "Response Get All Users Admin Users Get"
                                 }
                             }
                         }
@@ -262,34 +287,221 @@
                 }
             }
         },
-        "/admin/signals/{signal_id}/mark-processed": {
-            "post": {
+        "/admin/users/{user_id}": {
+            "get": {
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Mark Signal Processed",
-                "description": "Marcar sinal como processado",
-                "operationId": "mark_signal_processed_admin_signals__signal_id__mark_processed_post",
+                "summary": "Get User Configs",
+                "description": "Obter todas as configurações de um usuário específico",
+                "operationId": "get_user_configs_admin_users__user_id__get",
                 "parameters": [
                     {
-                        "name": "signal_id",
+                        "name": "user_id",
                         "in": "path",
                         "required": true,
                         "schema": {
                             "type": "integer",
-                            "title": "Signal Id"
+                            "title": "User Id"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/UserConfigResponse"
+                                    },
+                                    "title": "Response Get User Configs Admin Users  User Id  Get"
+                                }
+                            }
                         }
                     },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/search/{username}": {
+            "get": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Search User By Username",
+                "description": "Buscar usuário por username do Telegram",
+                "operationId": "search_user_by_username_admin_users_search__username__get",
+                "parameters": [
                     {
-                        "name": "processed_by",
-                        "in": "query",
+                        "name": "username",
+                        "in": "path",
                         "required": true,
                         "schema": {
                             "type": "string",
-                            "description": "Identificação do serviço que processou",
-                            "title": "Processed By"
-                        },
-                        "description": "Identificação do serviço que processou"
+                            "title": "Username"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "array",
+                                    "items": {
+                                        "$ref": "#/components/schemas/UserConfigResponse"
+                                    },
+                                    "title": "Response Search User By Username Admin Users Search  Username  Get"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/{user_id}/configs": {
+            "post": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Create User Config",
+                "description": "Criar nova configuração para um usuário",
+                "operationId": "create_user_config_admin_users__user_id__configs_post",
+                "parameters": [
+                    {
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "User Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserConfigCreate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserConfigResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        "/admin/users/configs/{config_id}": {
+            "put": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Update User Config",
+                "description": "Atualizar configuração existente",
+                "operationId": "update_user_config_admin_users_configs__config_id__put",
+                "parameters": [
+                    {
+                        "name": "config_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Config Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/UserConfigUpdate"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UserConfigResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Delete User Config",
+                "description": "Deletar configuração específica",
+                "operationId": "delete_user_config_admin_users_configs__config_id__delete",
+                "parameters": [
+                    {
+                        "name": "config_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Config Id"
+                        }
                     }
                 ],
                 "responses": {
@@ -314,28 +526,23 @@
                 }
             }
         },
-        "/admin/signals/recent": {
-            "get": {
+        "/admin/users/configs/{config_id}/toggle": {
+            "post": {
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Get Recent Signals",
-                "description": "Obter sinais recentes (para debug/monitoramento)",
-                "operationId": "get_recent_signals_admin_signals_recent_get",
+                "summary": "Toggle Config Status",
+                "description": "Alternar status ativo/inativo de uma configuração",
+                "operationId": "toggle_config_status_admin_users_configs__config_id__toggle_post",
                 "parameters": [
                     {
-                        "name": "limit",
-                        "in": "query",
-                        "required": false,
+                        "name": "config_id",
+                        "in": "path",
+                        "required": true,
                         "schema": {
                             "type": "integer",
-                            "maximum": 50,
-                            "minimum": 1,
-                            "description": "Número de sinais",
-                            "default": 10,
-                            "title": "Limit"
-                        },
-                        "description": "Número de sinais"
+                            "title": "Config Id"
+                        }
                     }
                 ],
                 "responses": {
@@ -343,13 +550,7 @@
                         "description": "Successful Response",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/SignalResponse"
-                                    },
-                                    "title": "Response Get Recent Signals Admin Signals Recent Get"
-                                }
+                                "schema": {}
                             }
                         }
                     },
@@ -366,66 +567,20 @@
                 }
             }
         },
-        "/admin/signals/last": {
+        "/admin/stats/symbols": {
             "get": {
                 "tags": [
                     "Admin"
                 ],
-                "summary": "Get Last Signals",
-                "description": "Obter sinais das últimas X horas (para debug/monitoramento)",
-                "operationId": "get_last_signals_admin_signals_last_get",
-                "parameters": [
-                    {
-                        "name": "limit",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "maximum": 200,
-                            "minimum": 1,
-                            "description": "Número de sinais",
-                            "default": 50,
-                            "title": "Limit"
-                        },
-                        "description": "Número de sinais"
-                    },
-                    {
-                        "name": "hours",
-                        "in": "query",
-                        "required": false,
-                        "schema": {
-                            "type": "integer",
-                            "maximum": 168,
-                            "minimum": 1,
-                            "description": "Horas para trás",
-                            "default": 24,
-                            "title": "Hours"
-                        },
-                        "description": "Horas para trás"
-                    }
-                ],
+                "summary": "Get Symbols Usage Stats",
+                "description": "Estatísticas de uso de símbolos nas configurações ativas",
+                "operationId": "get_symbols_usage_stats_admin_stats_symbols_get",
                 "responses": {
                     "200": {
                         "description": "Successful Response",
                         "content": {
                             "application/json": {
-                                "schema": {
-                                    "type": "array",
-                                    "items": {
-                                        "$ref": "#/components/schemas/SignalResponse"
-                                    },
-                                    "title": "Response Get Last Signals Admin Signals Last Get"
-                                }
-                            }
-                        }
-                    },
-                    "422": {
-                        "description": "Validation Error",
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/HTTPValidationError"
-                                }
+                                "schema": {}
                             }
                         }
                     }
@@ -728,128 +883,6 @@
                 "title": "RSIResponse",
                 "description": "DTO para resposta de consulta de RSI"
             },
-            "SignalResponse": {
-                "properties": {
-                    "id": {
-                        "type": "integer",
-                        "title": "Id"
-                    },
-                    "symbol": {
-                        "type": "string",
-                        "title": "Symbol"
-                    },
-                    "signal_type": {
-                        "type": "string",
-                        "title": "Signal Type"
-                    },
-                    "strength": {
-                        "type": "string",
-                        "title": "Strength"
-                    },
-                    "price": {
-                        "type": "number",
-                        "title": "Price"
-                    },
-                    "timeframe": {
-                        "type": "string",
-                        "title": "Timeframe"
-                    },
-                    "source": {
-                        "type": "string",
-                        "title": "Source"
-                    },
-                    "message": {
-                        "type": "string",
-                        "title": "Message"
-                    },
-                    "indicator_type": {
-                        "items": {
-                            "type": "string"
-                        },
-                        "type": "array",
-                        "title": "Indicator Type"
-                    },
-                    "indicator_data": {
-                        "type": "object",
-                        "title": "Indicator Data"
-                    },
-                    "confidence_score": {
-                        "anyOf": [
-                            {
-                                "type": "number"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Confidence Score"
-                    },
-                    "combined_score": {
-                        "anyOf": [
-                            {
-                                "type": "number"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Combined Score"
-                    },
-                    "processed": {
-                        "type": "boolean",
-                        "title": "Processed"
-                    },
-                    "processed_at": {
-                        "anyOf": [
-                            {
-                                "type": "string",
-                                "format": "date-time"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Processed At"
-                    },
-                    "processed_by": {
-                        "anyOf": [
-                            {
-                                "type": "string"
-                            },
-                            {
-                                "type": "null"
-                            }
-                        ],
-                        "title": "Processed By"
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time",
-                        "title": "Created At"
-                    }
-                },
-                "type": "object",
-                "required": [
-                    "id",
-                    "symbol",
-                    "signal_type",
-                    "strength",
-                    "price",
-                    "timeframe",
-                    "source",
-                    "message",
-                    "indicator_type",
-                    "indicator_data",
-                    "confidence_score",
-                    "combined_score",
-                    "processed",
-                    "processed_at",
-                    "processed_by",
-                    "created_at"
-                ],
-                "title": "SignalResponse",
-                "description": "Schema de resposta para sinais"
-            },
             "SystemStatusResponse": {
                 "properties": {
                     "monitoring_configs": {
@@ -860,13 +893,13 @@
                         "type": "integer",
                         "title": "Active Configs"
                     },
+                    "unique_active_users": {
+                        "type": "integer",
+                        "title": "Unique Active Users"
+                    },
                     "last_signal_count_24h": {
                         "type": "integer",
                         "title": "Last Signal Count 24H"
-                    },
-                    "unprocessed_signals": {
-                        "type": "integer",
-                        "title": "Unprocessed Signals"
                     },
                     "celery_workers_active": {
                         "type": "boolean",
@@ -877,12 +910,326 @@
                 "required": [
                     "monitoring_configs",
                     "active_configs",
+                    "unique_active_users",
                     "last_signal_count_24h",
-                    "unprocessed_signals",
                     "celery_workers_active"
                 ],
                 "title": "SystemStatusResponse",
                 "description": "Schema de resposta para status do sistema"
+            },
+            "UserConfigCreate": {
+                "properties": {
+                    "user_username": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "User Username"
+                    },
+                    "config_name": {
+                        "type": "string",
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "title": "Config Name"
+                    },
+                    "config_type": {
+                        "type": "string",
+                        "maxLength": 50,
+                        "title": "Config Type",
+                        "default": "custom"
+                    },
+                    "symbols": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "minItems": 1,
+                        "title": "Symbols"
+                    },
+                    "timeframes": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "minItems": 1,
+                        "title": "Timeframes"
+                    },
+                    "indicators_config": {
+                        "anyOf": [
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Indicators Config"
+                    },
+                    "filter_config": {
+                        "anyOf": [
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Filter Config"
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "maximum": 10,
+                        "minimum": 1,
+                        "title": "Priority",
+                        "default": 1
+                    },
+                    "active": {
+                        "type": "boolean",
+                        "title": "Active",
+                        "default": true
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "config_name",
+                    "symbols",
+                    "timeframes"
+                ],
+                "title": "UserConfigCreate",
+                "description": "Schema para criação de configuração de usuário"
+            },
+            "UserConfigResponse": {
+                "properties": {
+                    "id": {
+                        "type": "integer",
+                        "title": "Id"
+                    },
+                    "user_id": {
+                        "type": "integer",
+                        "title": "User Id"
+                    },
+                    "user_username": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "User Username"
+                    },
+                    "config_name": {
+                        "type": "string",
+                        "title": "Config Name"
+                    },
+                    "config_type": {
+                        "type": "string",
+                        "title": "Config Type"
+                    },
+                    "symbols": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Symbols"
+                    },
+                    "timeframes": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "type": "array",
+                        "title": "Timeframes"
+                    },
+                    "indicators_config": {
+                        "anyOf": [
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Indicators Config"
+                    },
+                    "filter_config": {
+                        "anyOf": [
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Filter Config"
+                    },
+                    "priority": {
+                        "type": "integer",
+                        "title": "Priority"
+                    },
+                    "active": {
+                        "type": "boolean",
+                        "title": "Active"
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Created At"
+                    },
+                    "updated_at": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Updated At"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "id",
+                    "user_id",
+                    "user_username",
+                    "config_name",
+                    "config_type",
+                    "symbols",
+                    "timeframes",
+                    "indicators_config",
+                    "filter_config",
+                    "priority",
+                    "active",
+                    "created_at",
+                    "updated_at"
+                ],
+                "title": "UserConfigResponse",
+                "description": "Schema de resposta para configurações de usuário"
+            },
+            "UserConfigUpdate": {
+                "properties": {
+                    "user_username": {
+                        "anyOf": [
+                            {
+                                "type": "string"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "User Username"
+                    },
+                    "config_name": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "maxLength": 100,
+                                "minLength": 1
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Config Name"
+                    },
+                    "config_type": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "maxLength": 50
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Config Type"
+                    },
+                    "symbols": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array",
+                                "minItems": 1
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Symbols"
+                    },
+                    "timeframes": {
+                        "anyOf": [
+                            {
+                                "items": {
+                                    "type": "string"
+                                },
+                                "type": "array",
+                                "minItems": 1
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Timeframes"
+                    },
+                    "indicators_config": {
+                        "anyOf": [
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Indicators Config"
+                    },
+                    "filter_config": {
+                        "anyOf": [
+                            {
+                                "type": "object"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Filter Config"
+                    },
+                    "priority": {
+                        "anyOf": [
+                            {
+                                "type": "integer",
+                                "maximum": 10,
+                                "minimum": 1
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Priority"
+                    },
+                    "active": {
+                        "anyOf": [
+                            {
+                                "type": "boolean"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Active"
+                    }
+                },
+                "type": "object",
+                "title": "UserConfigUpdate",
+                "description": "Schema para atualização de configuração de usuário"
             },
             "ValidationError": {
                 "properties": {

@@ -22,6 +22,34 @@ class Settings(BaseSettings):
     rsi_oversold: int = 20  # ≤ Nível de sobrevenda
     rsi_overbought: int = 80  # ≥ Nível de sobrecompra
 
+    # ===============================================
+    # Signal Filter Settings (FALLBACK GLOBAL)
+    # ===============================================
+
+    # Configurações de Cooldown por Timeframe e Força (em minutos)
+    signal_filter_cooldown_15m_strong: int = 15  # 15 minutos
+    signal_filter_cooldown_15m_moderate: int = 30  # 30 minutos
+    signal_filter_cooldown_15m_weak: int = 60  # 1 hora
+
+    signal_filter_cooldown_1h_strong: int = 60  # 1 hora
+    signal_filter_cooldown_1h_moderate: int = 120  # 2 horas
+    signal_filter_cooldown_1h_weak: int = 240  # 4 horas
+
+    signal_filter_cooldown_4h_strong: int = 120  # 2 horas
+    signal_filter_cooldown_4h_moderate: int = 240  # 4 horas
+    signal_filter_cooldown_4h_weak: int = 360  # 6 horas
+
+    signal_filter_cooldown_1d_strong: int = 360  # 6 horas
+    signal_filter_cooldown_1d_moderate: int = 720  # 12 horas
+    signal_filter_cooldown_1d_weak: int = 1440  # 24 horas
+
+    # Limites Diários de Sinais
+    signal_filter_max_signals_per_symbol: int = 3  # Máximo de sinais por símbolo/dia
+    signal_filter_max_strong_signals: int = 2  # Máximo de sinais STRONG por símbolo/dia
+    signal_filter_min_rsi_difference: float = (
+        2.0  # Diferença mínima de RSI para novo sinal
+    )
+
     # Símbolos padrão para monitoramento
     default_crypto_symbols: List[str] = [
         "BTC",
@@ -112,7 +140,7 @@ class Settings(BaseSettings):
     """
 
     # Intervalos e Frequências
-    signal_monitoring_interval_seconds: int = ( # REMOVIDO
+    signal_monitoring_interval_seconds: int = (  # REMOVIDO
         300  # Intervalo entre verificações de sinais - 5 minutos
     )
     database_cleanup_interval_seconds: int = (
@@ -147,6 +175,7 @@ class Settings(BaseSettings):
     trading_coins_min_market_cap: int = 50_000_000  # $50M
     trading_coins_min_volume: int = 3_000_000  # $3M
     trading_coins_update_interval_days: int = 7  # Atualizar lista a cada 7 dias
+    trading_coins_max_limit: int = 500  # Máximo de moedas para buscar das exchanges
 
     # Blacklist de moedas (stablecoins + problemáticas)
     trading_coins_blacklist: List[str] = [

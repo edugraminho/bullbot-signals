@@ -45,7 +45,7 @@ services:
   celery_worker:
     build:
       context: .
-    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=1 --max-memory-per-child=200000
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=1 --max-memory-per-child=200000 --queues=signals,celery
     volumes:
       - .:/app
     depends_on:

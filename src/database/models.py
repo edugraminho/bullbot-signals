@@ -4,7 +4,18 @@ Models do banco de dados
 
 from datetime import datetime, timezone
 
-from sqlalchemy import Boolean, Column, DateTime, Float, Integer, JSON, String, Text
+from sqlalchemy import (
+    BigInteger,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    Integer,
+    JSON,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -53,17 +64,42 @@ class SignalHistory(Base):
     processing_time_ms = Column(Integer, nullable=True)  # Tempo de processamento
 
 
-class MonitoringConfig(Base):
-    """Configurações de monitoramento de sinais"""
+class UserMonitoringConfig(Base):
+    """Configurações de monitoramento de sinais por usuário com dados do Telegram"""
 
-    __tablename__ = "monitoring_config"
+    __tablename__ = "user_monitoring_configs"
 
     id = Column(Integer, primary_key=True)
 
-    # Identificação
-    name = Column(
-        String(50), nullable=False, unique=True
-    )  # "default", "aggressive", etc
+    # Identificação do usuário (agora usando chat_id como identificador principal)
+    user_id = Column(
+        BigInteger, nullable=False, index=True
+    )  # ID do usuário (mesmo que chat_id)
+    chat_id = Column(
+        String(50), nullable=False, unique=True, index=True
+    )  # Chat ID do Telegram
+    chat_type = Column(
+        String(20), nullable=False, default="private"
+    )  # "private", "group", "supergroup"
+
+    # Informações do usuário do Telegram
+    username = Column(String(100), nullable=True)  # @username do Telegram
+    first_name = Column(String(100), nullable=True)  # Primeiro nome
+    last_name = Column(String(100), nullable=True)  # Último nome
+    user_username = Column(String(100), nullable=True)  # Mantido para compatibilidade
+
+    # Configuração da conta
+    config_type = Column(
+        String(20), nullable=False, default="personal"
+    )  # "personal", "group", "default"
+    priority = Column(
+        Integer, nullable=False, default=1
+    )  # Prioridade da config (caso user tenha múltiplas)
+
+    # Identificação da configuração
+    config_name = Column(
+        String(50), nullable=False
+    )  # "crypto_principais", "altcoins_scalping", etc
     description = Column(Text, nullable=True)  # Descrição da configuração
     active = Column(Boolean, default=True)
 
@@ -100,10 +136,24 @@ class MonitoringConfig(Base):
     #     "min_rsi_difference": 2.0
     # }
 
+    # Atividade e estatísticas do Telegram
+    active = Column(Boolean, default=True, nullable=False)  # Status da assinatura
+    last_activity = Column(
+        DateTime, default=lambda: datetime.now(timezone.utc)
+    )  # Última atividade
+    signals_received = Column(Integer, default=0)  # Total de sinais recebidos
+    last_signal_at = Column(DateTime, nullable=True)  # Último sinal recebido
+
     # Metadados
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     updated_at = Column(
         DateTime,
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    # Constraints
+    __table_args__ = (
+        # Constraint UNIQUE(user_id, config_name)
+        UniqueConstraint("user_id", "config_name", name="uq_user_config_name"),
     )

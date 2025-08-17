@@ -22,10 +22,11 @@ celery_app.conf.update(
     # Timezone
     timezone=settings.celery_timezone,
     enable_utc=settings.celery_enable_utc,
-    # Task routing - usar fila padrão para simplificar
-    # task_routes={
-    #     "src.tasks.monitor_tasks.*": {"queue": "monitor"},
-    # },
+    # Task routing - usar fila específica para signals
+    task_routes={
+        "src.tasks.monitor_tasks.*": {"queue": "signals"},
+    },
+    task_default_queue="signals",
     # Concorrência e Performance
     worker_concurrency=settings.celery_worker_count,
     worker_prefetch_multiplier=settings.celery_tasks_per_worker,
@@ -36,7 +37,10 @@ celery_app.conf.update(
     worker_max_memory_per_child=settings.celery_max_memory_per_child,
     # Beat schedule para monitoramento
     beat_schedule={
-        # start-monitoring removido - usar endpoint manual /debug/trigger-monitoring
+        "monitor-rsi-signals": {
+            "task": "src.tasks.monitor_tasks.monitor_rsi_signals",
+            "schedule": 300.0,  # A cada 5 minutos
+        },
         # "cleanup-old-signals": {
         #     "task": "src.tasks.monitor_tasks.cleanup_old_signals",
         #     "schedule": float(settings.database_cleanup_interval_seconds),

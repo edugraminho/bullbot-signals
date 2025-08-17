@@ -75,9 +75,7 @@ class TradingCoins:
         # Criar diretório se não existir
         os.makedirs("data", exist_ok=True)
 
-    async def fetch_coins_data(
-        self, limit: int = 500, volume_period: str = "24h"
-    ) -> List[Dict]:
+    async def fetch_coins_data(self, limit: int, volume_period: str) -> List[Dict]:
         """Busca dados das moedas da CoinGecko"""
         try:
             url = f"{self.coingecko_api}/coins/markets"
@@ -312,7 +310,7 @@ class TradingCoins:
 
         # Buscar dados da CoinGecko
         coins_data = await self.fetch_coins_data(
-            limit=1000, volume_period=volume_period
+            limit=settings.trading_coins_max_limit, volume_period=volume_period
         )
         if not coins_data:
             logger.error("❌ Não foi possível buscar dados da CoinGecko")
@@ -328,7 +326,7 @@ class TradingCoins:
         )
         return filtered_coins
 
-    def get_trading_symbols(self, limit: int = 200) -> List[str]:
+    def get_trading_symbols(self, limit: int = None) -> List[str]:
         """Retorna lista de símbolos para trading"""
         coins = self.load_from_csv()
         return [coin.symbol for coin in coins[:limit]]
