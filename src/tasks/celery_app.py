@@ -22,6 +22,9 @@ celery_app.conf.update(
     # Timezone
     timezone=settings.celery_timezone,
     enable_utc=settings.celery_enable_utc,
+    # Broker connection settings
+    broker_connection_retry_on_startup=True,
+    broker_connection_retry=True,
     # Task routing - usar fila específica para signals
     task_routes={
         "src.tasks.monitor_tasks.*": {"queue": "signals"},

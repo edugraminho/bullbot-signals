@@ -65,7 +65,7 @@ services:
   celery_beat:
     build:
       context: .
-    command: celery -A src.tasks.celery_app beat --loglevel=info
+    command: celery -A src.tasks.celery_app beat --loglevel=warning
     volumes:
       - .:/app
     depends_on:
