@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
     # Configurações RSI
     rsi_calculation_window: int = 14  # Janela de períodos para cálculo RSI
-    rsi_analysis_timeframe: str = "15m"  # Timeframe para análise (15m, 1h, 4h)
+    rsi_analysis_timeframe: str = "4h"  # Timeframe para análise (15m, 1h, 4h)
 
     # Limites RSI para sinais - O sistema prioriza a conf do banco quando ela existe
     rsi_oversold: int = 20  # ≤ Nível de sobrevenda
