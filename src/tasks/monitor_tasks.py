@@ -18,7 +18,7 @@ from src.utils.config import settings
 from src.utils.logger import get_logger
 from src.utils.trading_coins import trading_coins
 
-logger = get_logger(__name__, level="DEBUG")
+logger = get_logger(__name__, level="INFO")
 
 
 class MonitorTaskConfig:
@@ -210,9 +210,6 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
                     overbought=max_overbought,
                 )
                 rsi_service = RSIService(custom_rsi_levels=custom_rsi_levels)
-                logger.info(
-                    f"RSI agregado: oversold≤{min_oversold}, overbought≥{max_overbought}"
-                )
         else:
             # Usar configuração padrão se não há configurações
             logger.warning(
@@ -231,10 +228,6 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
         no_data = 0
         total_combinations = len(symbols) * len(active_timeframes)
         processed_count = 0
-
-        logger.info(
-            f"Processando {len(symbols)} símbolos × {len(active_timeframes)} timeframes = {total_combinations} combinações"
-        )
 
         for symbol in symbols:
             for timeframe in active_timeframes:
@@ -278,10 +271,6 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
             f"Batch {exchange} concluído: {successful}/{total_combinations} sinais detectados "
             f"({batch_duration:.2f}s total, {avg_time_per_combination:.2f}s/combinação)"
         )
-        logger.info(
-            f"{len(symbols)} símbolos × {len(active_timeframes)} timeframes = {total_combinations} combinações"
-        )
-        logger.info("-" * 40)
 
         return {
             "status": "completed",
@@ -346,19 +335,14 @@ def process_single_symbol(
             from src.utils.trading_coins import trading_coins
 
             trading_coins.remove_exchange_from_coin(symbol, exchange)
-            logger.debug(f"❌ {symbol}: Sem dados na {exchange}")
             return {"status": "no_data", "symbol": symbol, "exchange": exchange}
 
         # Analisar RSI
         analysis = rsi_service.analyze_rsi(rsi_data)
 
-        # Log breve da moeda e RSI
-        logger.debug(
-            f"{symbol}: RSI {rsi_data.value:.2f} | Preço ${rsi_data.current_price}"
-        )
+        # Log breve da moeda e RSI (apenas para sinais relevantes)
 
         if not analysis:
-            logger.debug(f"{symbol}: Zona neutra (RSI: {rsi_data.value:.2f})")
             return {
                 "status": "neutral_zone",
                 "symbol": symbol,
@@ -470,7 +454,6 @@ def process_single_symbol(
             }
 
         else:
-            logger.debug(f"{symbol}: Sinal filtrado (RSI: {rsi_data.value:.2f})")
             return {"status": "filtered", "symbol": symbol, "rsi_value": rsi_data.value}
 
     except Exception as e:
@@ -515,14 +498,8 @@ def get_active_symbols() -> List[str]:
             if config.symbols and len(config.symbols) > 0:
                 all_symbols.update(config.symbols)
                 config_count += 1
-                logger.debug(
-                    f"Config '{config.config_name}' (user {config.user_id}): {len(config.symbols)} símbolos"
-                )
 
         symbols = list(all_symbols)
-        logger.info(
-            f"Agregados {len(symbols)} símbolos únicos de {config_count} configurações ativas"
-        )
 
         if len(symbols) == 0:
             logger.warning("⚠️ Nenhum símbolo encontrado nas configurações ativas")
@@ -572,9 +549,6 @@ def get_active_timeframes() -> List[str]:
                 )
 
         timeframes = list(all_timeframes)
-        logger.info(
-            f"Agregados {len(timeframes)} timeframes únicos de {config_count} configurações: {timeframes}"
-        )
 
         if len(timeframes) == 0:
             logger.warning("⚠️ Nenhum timeframe encontrado nas configurações ativas")

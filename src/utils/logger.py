@@ -5,6 +5,9 @@ Configuração de logging para o projeto
 import logging
 import sys
 
+# Handler global único para evitar duplicação
+_global_handler = None
+
 
 def get_logger(name: str, level: str = "WARNING") -> logging.Logger:
     """
@@ -14,27 +17,28 @@ def get_logger(name: str, level: str = "WARNING") -> logging.Logger:
         name: Nome do logger (geralmente __name__)
         level: Nível de log (DEBUG, INFO, WARNING, ERROR)
     """
-    logger = logging.getLogger(name)
+    global _global_handler
 
-    # Evitar duplicação de handlers
-    if logger.handlers:
-        return logger
+    logger = logging.getLogger(name)
 
     # Configurar nível
     log_level = getattr(logging, level.upper(), logging.WARNING)
     logger.setLevel(log_level)
 
-    # Criar handler para console
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(log_level)
+    # Criar handler global único se não existir
+    if _global_handler is None:
+        _global_handler = logging.StreamHandler(sys.stdout)
+        _global_handler.setLevel(logging.INFO)
 
-    # Formato das mensagens
-    formatter = logging.Formatter(
-        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-    handler.setFormatter(formatter)
+        # Formato das mensagens
+        formatter = logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
+        _global_handler.setFormatter(formatter)
 
-    logger.addHandler(handler)
+    # Adicionar handler global se não estiver presente
+    if _global_handler not in logger.handlers:
+        logger.addHandler(_global_handler)
 
     return logger

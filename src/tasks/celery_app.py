@@ -64,11 +64,19 @@ celery_app.conf.worker_task_log_format = "[%(asctime)s: %(levelname)s/%(processN
 celery_app.conf.worker_redirect_stdouts = False
 celery_app.conf.worker_redirect_stdouts_level = "WARNING"
 
-# Configurar logging para evitar logs duplicados
-logging.getLogger("celery.worker").setLevel(logging.WARNING)
-logging.getLogger("celery.task").setLevel(logging.WARNING)
-logging.getLogger("celery.worker.control").setLevel(logging.WARNING)
+# Configurar logging para evitar logs duplicados - DESABILITAR CELERY LOGS
+celery_app.conf.worker_hijack_root_logger = False
+celery_app.conf.worker_log_color = False
+celery_app.conf.task_always_eager = False
 
-# Silenciar logs HTTP do httpx
-logging.getLogger("httpx").setLevel(logging.WARNING)
-logging.getLogger("httpcore").setLevel(logging.WARNING)
+# Silenciar todos os loggers do Celery
+logging.getLogger("celery").setLevel(logging.ERROR)
+logging.getLogger("celery.worker").setLevel(logging.ERROR)
+logging.getLogger("celery.task").setLevel(logging.ERROR)
+logging.getLogger("celery.worker.control").setLevel(logging.ERROR)
+logging.getLogger("celery.worker.consumer").setLevel(logging.ERROR)
+logging.getLogger("celery.worker.consumer.connection").setLevel(logging.ERROR)
+
+# Silenciar logs HTTP
+logging.getLogger("httpx").setLevel(logging.ERROR)
+logging.getLogger("httpcore").setLevel(logging.ERROR)
