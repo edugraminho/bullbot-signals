@@ -82,7 +82,7 @@ ranking,symbol,name,market_cap,volume_24h,volume_7d,volume_30d,price,launch_date
 81,LDO,Lido DAO,1244501146.0,164297556.0,0.0,0.0,1.39,,"binance,mexc,gate",100000000.0,10000000.0,24h,active
 82,CRV,Curve DAO,1198257709.0,149350483.0,0.0,0.0,0.86409,,"binance,mexc,gate",100000000.0,10000000.0,24h,active
 83,PUMP,Pump.fun,1193197017.0,139654955.0,0.0,0.0,0.00337066,,"mexc,gate",100000000.0,10000000.0,24h,active
-84,AERO,Aerodrome Finance,1183916779.0,87464773.0,0.0,0.0,1.35,,"mexc,gate",100000000.0,10000000.0,24h,active
+84,AERO,Aerodrome Finance,1183916779.0,87464773.0,0.0,0.0,1.35,,mexc,100000000.0,10000000.0,24h,active
 85,WBNB,Wrapped BNB,1120970807.0,126081279.0,0.0,0.0,832.84,,"mexc,gate",100000000.0,10000000.0,24h,active
 86,JUPSOL,Jupiter Staked SOL,1118835030.0,10619471.0,0.0,0.0,211.66,,"mexc,gate",100000000.0,10000000.0,24h,active
 87,IMX,Immutable,1110180383.0,27933286.0,0.0,0.0,0.57921,,"binance,mexc,gate",100000000.0,10000000.0,24h,active
