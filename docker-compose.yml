@@ -15,9 +15,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 400M
+          memory: 250M
         reservations:
-          memory: 200M
+          memory: 128M
 
   db:
     image: postgres:17.1-alpine
@@ -32,15 +32,15 @@ services:
     deploy:
       resources:
         limits:
-          memory: 200M
+          memory: 128M
         reservations:
-          memory: 100M
+          memory: 64M
     command: >
       postgres
       -c max_connections=20
-      -c shared_buffers=32MB
-      -c effective_cache_size=128MB
-      -c maintenance_work_mem=16MB
+      -c shared_buffers=16MB
+      -c effective_cache_size=64MB
+      -c maintenance_work_mem=8MB
   
   celery_worker:
     build:
@@ -58,9 +58,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: 200M
         reservations:
-          memory: 256M
+          memory: 100M
       
   celery_beat:
     build:
@@ -78,9 +78,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 200M
+          memory: 80M
         reservations:
-          memory: 100M
+          memory: 40M
 
   redis:
     image: redis:8.0-alpine
@@ -91,12 +91,12 @@ services:
     deploy:
       resources:
         limits:
-          memory: 100M
+          memory: 64M
         reservations:
-          memory: 50M
+          memory: 32M
     command: >
       redis-server
-      --maxmemory 128mb
+      --maxmemory 48mb
       --maxmemory-policy allkeys-lru
       --save "" 
 
