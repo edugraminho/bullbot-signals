@@ -23,6 +23,10 @@ services:
     image: postgres:17.1-alpine
     env_file:
       - .env
+    environment:
+      POSTGRES_DB: bullbot_signals
+      POSTGRES_USER: bullbot_user
+      POSTGRES_PASSWORD: bullbot_password_2025
     ports:
       - "5438:5432"
     volumes:
