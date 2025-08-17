@@ -78,9 +78,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 80M
+          memory: 120M
         reservations:
-          memory: 40M
+          memory: 60M
 
   redis:
     image: redis:8.0-alpine
