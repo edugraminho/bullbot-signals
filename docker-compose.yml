@@ -105,4 +105,5 @@ volumes:
 
 networks:
   bullbot_network:
-    driver: bridge 
+    driver: bridge
+    external: false 
