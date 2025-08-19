@@ -109,5 +109,5 @@ volumes:
 
 networks:
   bullbot_network:
-    driver: bridge
-    external: false 
+    external: true
+    name: bullbot-shared-network 
