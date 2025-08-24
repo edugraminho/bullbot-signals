@@ -49,7 +49,7 @@ services:
   celery_worker:
     build:
       context: .
-    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=1 --max-memory-per-child=200000 --queues=signals,celery
+    command: celery -A src.tasks.celery_app worker --loglevel=info --concurrency=1 --max-memory-per-child=400000 --queues=signals,celery
     volumes:
       - .:/app
     depends_on:
@@ -62,9 +62,9 @@ services:
     deploy:
       resources:
         limits:
-          memory: 200M
+          memory: 500M
         reservations:
-          memory: 100M
+          memory: 200M
       
   celery_beat:
     build:

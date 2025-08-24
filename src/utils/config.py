@@ -191,7 +191,7 @@ class Settings(BaseSettings):
     celery_task_force_kill_timeout: int = 900  # 15 min - força encerramento
 
     # Configurações de Memória
-    celery_max_memory_per_child: int = 200000  # 200MB por processo filho (KB)
+    celery_max_memory_per_child: int = 400000  # 400MB por processo filho (KB)
 
     # ===============================================
     # API Settings
@@ -248,6 +248,7 @@ class Settings(BaseSettings):
         "XPR",
         "RPL",
         "WETH",
+        "SIGKILL",
     ]
 
     class Config:
