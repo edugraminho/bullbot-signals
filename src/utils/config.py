@@ -16,11 +16,41 @@ class Settings(BaseSettings):
 
     # Configurações RSI
     rsi_calculation_window: int = 14  # Janela de períodos para cálculo RSI
-    rsi_analysis_timeframe: str = "4h"  # Timeframe para análise (15m, 1h, 4h)
+
+    # Timeframes padrão para monitoramento (quando usuário não configura)
+    default_monitoring_timeframes: List[str] = ["15m"]
 
     # Limites RSI para sinais - O sistema prioriza a conf do banco quando ela existe
     rsi_oversold: int = 20  # ≤ Nível de sobrevenda
     rsi_overbought: int = 80  # ≥ Nível de sobrecompra
+
+    # ===============================================
+    # Technical Indicators Settings
+    # ===============================================
+
+    # Configurações EMA (Exponential Moving Average)
+    ema_short_period: int = 9  # EMA curta para detecção de tendência
+    ema_medium_period: int = 21  # EMA média para confirmação
+    ema_long_period: int = 50  # EMA longa para filtro principal
+
+    # Configurações MACD (Moving Average Convergence Divergence)
+    macd_fast_period: int = 12  # Período EMA rápida
+    macd_slow_period: int = 26  # Período EMA lenta
+    macd_signal_period: int = 9  # Período da linha de sinal
+
+    # Configurações Bollinger Bands
+    bollinger_period: int = 20  # Período da média móvel central
+    bollinger_std_dev: float = 2.0  # Desvio padrão das bandas
+
+    # Configurações Volume
+    volume_sma_period: int = 20  # Período para média móvel do volume
+    volume_threshold_multiplier: float = 1.2  # Volume deve ser 120% da média
+
+    # Configurações de Confluência
+    confluence_min_score_15m: int = 4  # Score mínimo para sinais de 15min
+    confluence_min_score_1h: int = 4  # Score mínimo para sinais de 1h
+    confluence_min_score_4h: int = 5  # Score mínimo para sinais de 4h
+    confluence_min_score_1d: int = 5  # Score mínimo para sinais de 1d
 
     # ===============================================
     # Signal Filter Settings (FALLBACK GLOBAL)

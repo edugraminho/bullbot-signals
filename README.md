@@ -1,6 +1,6 @@
 # BullBot Signals 🤖
 
-Bot automatizado para trading de criptomoedas baseado no indicador RSI (Relative Strength Index), com integração às APIs da [Gate.io](https://www.gate.io/docs/apiv4/), [Binance](https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#klinecandlestick-data) e [MEXC](https://mexcdevelop.github.io/apidocs/spot_v3_en/) para dados OHLCV e cálculo próprio de RSI.
+Sistema avançado de análise técnica para trading de criptomoedas baseado em **confluência de indicadores**. Combina RSI, EMAs, MACD e Volume para gerar sinais de alta precisão, com integração às APIs da [Binance](https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#klinecandlestick-data), [Gate.io](https://www.gate.io/docs/apiv4/) e [MEXC](https://mexcdevelop.github.io/apidocs/spot_v3_en/).
 
 ## 📋 Índice
 
@@ -18,28 +18,55 @@ Bot automatizado para trading de criptomoedas baseado no indicador RSI (Relative
 
 ## 🎯 Sobre o Projeto
 
-O BullBot Signals é uma aplicação de análise técnica automatizada que utiliza o indicador RSI (Relative Strength Index) para identificar oportunidades de trading em criptomoedas. O projeto integra com as APIs da Gate.io, Binance e MEXC para obter dados de RSI em tempo real e gerar sinais de compra/venda.
+O BullBot Signals é uma aplicação de análise técnica avançada que utiliza **confluência de indicadores** para identificar oportunidades de trading em criptomoedas com alta precisão.
+
+### 🎯 O que é Confluência?
+
+**Confluência** é quando múltiplos indicadores técnicos concordam e apontam na mesma direção, aumentando drasticamente a probabilidade de sucesso do sinal.
+
+**Analogia**: Em vez de confiar apenas em uma pessoa te dizendo "pode atravessar a rua", você espera que 4-5 pessoas concordem. **Maior consenso = Maior confiança!**
+
+### 📊 Sistema de Pontuação (0-8 pontos)
+
+| Indicador | Peso | O que Confirma |
+|-----------|------|----------------|
+| **RSI** | 2 pontos | Zona de sobrecompra/sobrevenda |
+| **EMA** | 3 pontos | Tendência + posição do preço |
+| **MACD** | 1 ponto | Momentum bullish/bearish |
+| **Volume** | 2 pontos | Volume alto + OBV trending |
+
+**Resultado**: Sinais mais confiáveis, menos falsos positivos, melhor timing de entrada.
 
 ## ✨ Funcionalidades
 
-### ✅ Implementadas
+### ✅ Sistema de Confluência Implementado
 
-- **🔗 Integração Gate.io**: Cliente para dados OHLCV e cálculo próprio de RSI
-- **🔗 Integração Binance**: Cliente para dados OHLCV da maior exchange do mundo
-- **🔗 Integração MEXC**: Cliente para dados OHLCV de contratos futuros
-- **📊 Análise RSI**: Serviço para análise de RSI e geração de sinais
-- **🌐 API REST**: Endpoints FastAPI para consulta de RSI e sinais
-- **📈 Monitoramento Múltiplo**: Suporte a múltiplas criptomoedas simultaneamente
-- **🎯 Detecção de Sinais**: Análise automática de sobrecompra/sobrevenda
-- **🏗️ Arquitetura Escalável**: Estrutura preparada para múltiplas exchanges
+- **🎯 Análise Confluente**: RSI + EMA + MACD + Volume = Score 0-8 pontos
+- **📊 Indicadores Técnicos Completos**:
+  - **RSI**: Força relativa com níveis configuráveis (padrão: 20/80)
+  - **EMAs**: Médias exponenciais 9/21/50 para análise de tendência
+  - **MACD**: Convergência/divergência 12/26/9 para momentum
+  - **Volume**: OBV, VWAP e análise de fluxo para confirmação
+- **🎚️ Sistema de Pontuação Inteligente**: Filtragem por qualidade (4+ pontos = sinal válido)
+- **⚙️ Configuração Dinâmica**: Usuários podem personalizar via Telegram
+- **🔗 Multi-Exchange**: Binance (principal), Gate.io e MEXC com failover automático
+
+### ✅ Infraestrutura Robusta
+
+- **🌐 API REST FastAPI**: Endpoints otimizados para análise em tempo real
+- **📈 Monitoramento Contínuo**: Celery tasks para análise 24/7
+- **🤖 Integração Telegram**: Alimenta bullbot-telegram via banco de dados
+- **🚫 Anti-Spam Avançado**: Cooldowns inteligentes e limites diários
+- **🏗️ Clean Architecture**: Separação clara entre domínio, infraestrutura e API
+- **🐳 Containerização**: Docker-compose para desenvolvimento e produção
 
 
 ### 🚧 Em Desenvolvimento
 
-- Integração com múltiplas exchanges
-- Backtesting de estratégias
-- Dashboard web para visualização
-- Alertas em tempo real
+- Bandas de Bollinger como indicador adicional
+- Backtesting de estratégias de confluência
+- Dashboard web para visualização de scores
+- Machine Learning para otimização de pesos
 
 ## 🛠️ Tecnologias
 
@@ -170,52 +197,191 @@ docker-compose logs -f app
 docker-compose down
 ```
 
+## 🎯 Sistema de Confluência de Indicadores
+
+O BullBot Signals utiliza um **sistema avançado de confluência** que combina múltiplos indicadores técnicos para gerar sinais de alta precisão, reduzindo drasticamente os falsos positivos.
+
+### 📊 Indicadores Utilizados
+
+| Indicador | Peso Máximo | Critérios de Pontuação |
+|-----------|-------------|------------------------|
+| **RSI** | 2 pontos | Sempre 2 se em zona extrema (≤20 ou ≥80) |
+| **EMAs** | 3 pontos | +2 se tendência favorável + 1 se preço > EMA50 |
+| **MACD** | 1 ponto | +1 se cruzamento favorável ao sinal |
+| **Volume** | 2 pontos | +1 se volume alto + 1 se OBV favorável |
+
+**Score Total**: 8 pontos máximos
+
+### ⚙️ Thresholds por Timeframe
+
+- **15 minutos**: Score mínimo **4 pontos** para gerar sinal
+- **1 hora**: Score mínimo **4 pontos** para gerar sinal  
+- **4 horas**: Score mínimo **5 pontos** para gerar sinal
+- **1 dia**: Score mínimo **5 pontos** para gerar sinal
+
+### 🎚️ Configuração via JSON
+
+O sistema é totalmente configurável através do projeto **bullbot-telegram**:
+
+```json
+{
+  "indicators_config": {
+    "RSI": {
+      "enabled": true,
+      "period": 14,
+      "oversold": 20,
+      "overbought": 80
+    },
+    "EMA": {
+      "enabled": true,
+      "short_period": 9,
+      "medium_period": 21,
+      "long_period": 50
+    },
+    "MACD": {
+      "enabled": true,
+      "fast_period": 12,
+      "slow_period": 26,
+      "signal_period": 9
+    },
+    "Volume": {
+      "enabled": true,
+      "sma_period": 20,
+      "threshold_multiplier": 1.2
+    },
+    "Confluence": {
+      "enabled": true,
+      "min_score_15m": 4,
+      "min_score_4h": 5
+    }
+  }
+}
+```
+
+### 🎯 Exemplo de Sinal Prático
+
+**Cenário**: BTC em timeframe de 15 minutos com confluência de 6/8 pontos
+
+```
+🎯 CONFLUÊNCIA BTC/15m - Score: 6/8 (75%) 
+💰 Preço: $67,530.25 | 👍 SINAL DE COMPRA STRONG
+
+📊 Breakdown dos Indicadores:
+├─ RSI: 18.4 (sobrevenda) ✅ +2/2 pontos
+│  • Zona: oversold (limite: ≤20)
+│  • Status: Ideal para compra
+├─ EMA: Alinhamento bullish ✅ +3/3 pontos  
+│  • EMA9: $67,234 > EMA21: $66,825 > EMA50: $66,210
+│  • Preço acima das 3 médias ✅ (filtro de tendência)
+├─ MACD: Momentum bullish ✅ +1/1 ponto
+│  • Linha MACD: 234.12 > Linha Sinal: 167.89
+│  • Histograma: +66.23 (divergência positiva)
+└─ Volume: Abaixo do threshold ❌ +0/2 pontos
+   • Volume atual: 85% da média (precisa: ≥120%)
+   • OBV: Trending up ✅ (fluxo positivo)
+   • VWAP: $67,230 (preço 0.44% above)
+
+💡 Estratégia Sugerida:
+   • Entry: $67,530 (preço atual)
+   • Stop Loss: $66,825 (EMA21) - Risco: 1.04%  
+   • Take Profit: $69,500 (próxima resistência)
+   • Risk/Reward: 1:2.8
+
+⚠️ Aviso: Volume baixo pode indicar breakout falso
+```
+
 ## 📊 API Endpoints
 
-### RSI Individual
+### Análise de Confluência
 ```bash
-GET /api/v1/rsi/single/{symbol}
+GET /api/v1/confluence/{symbol}
 ```
 
 **Parâmetros:**
 - `symbol`: Símbolo da criptomoeda (ex: BTC, ETH, SOL)
-- `interval`: Intervalo (1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M)
-- `window`: Janela do RSI (padrão: 14)
+- `interval`: Intervalo (15m, 1h, 4h, 1d)
 - `source`: Fonte dos dados (binance, gate ou mexc, padrão: binance)
 
 **Exemplo:**
 ```bash
-curl "http://localhost:8000/api/v1/rsi/single/BTC?interval=15m&window=14&source=binance"
+curl "http://localhost:8000/api/v1/confluence/BTC?interval=15m&source=binance"
 ```
 
 **Resposta:**
 ```json
 {
-  "symbol": "BTC",
-  "rsi_value": 43.48,
-  "current_price": 67530.25,
-  "timestamp": "2025-01-31T11:30:00",
-  "timespan": "15m",
-  "window": 14,
-  "source": "binance_calculated",
-  "data_source": "binance"
+  "signal": {
+    "symbol": "BTC",
+    "signal_type": "BUY",
+    "strength": "STRONG",
+    "rsi_value": 18.4,
+    "price": 67530.25,
+    "timestamp": "2025-01-31T15:30:00Z",
+    "timeframe": "15m",
+    "message": "Sinal de COMPRA STRONG - Score: 6/8"
+  },
+  "confluence_score": {
+    "total_score": 6,
+    "max_possible_score": 8,
+    "details": {
+      "RSI": {
+        "score": 2,
+        "value": 18.4,
+        "reason": "RSI 18.4 em zona de sobrevenda",
+        "levels": {
+          "oversold": 20,
+          "overbought": 80,
+          "current_zone": "oversold"
+        }
+      },
+      "EMA": {
+        "score": 3,
+        "trending_up": true,
+        "reason": "EMA favorável ao sinal",
+        "values": {
+          "ema_9": 67234.56,
+          "ema_21": 66825.78,
+          "ema_50": 66210.45,
+          "price_above_ema_50": true
+        }
+      },
+      "MACD": {
+        "score": 1,
+        "is_bullish": true,
+        "reason": "MACD confirma o sinal",
+        "values": {
+          "macd_line": 234.12,
+          "signal_line": 167.89,
+          "histogram": 66.23,
+          "crossover": "bullish"
+        }
+      },
+      "Volume": {
+        "score": 0,
+        "is_high_volume": false,
+        "obv_trending_up": true,
+        "reason": "Volume não suporta o sinal",
+        "values": {
+          "volume_ratio": 0.85,
+          "obv": 12345678.90,
+          "vwap": 67230.12,
+          "price_vs_vwap": "above",
+          "volume_threshold": "85%"
+        }
+      }
+    }
+  },
+  "recommendation": "Sinal de COMPRA STRONG - Score: 6/8",
+  "risk_level": "BAIXO",
+  "current_price": 67530.25
 }
 ```
 
-### RSI Múltiplo
-```bash
-GET /api/v1/rsi/multiple?symbols={symbol1},{symbol2}
-```
-
-**Exemplo:**
-```bash
-curl "http://localhost:8000/api/v1/rsi/multiple?symbols=BTCUSD,ETHUSD,SOLUSD"
-```
 
 
 ### Health Check
 ```bash
-GET /api/v1/rsi/health
+GET /api/v1/health
 ```
 
 ## 🔗 Integração MEXC
@@ -266,33 +432,126 @@ A API `/api/v3/klines` retorna dados em formato de array com **12 elementos** po
 ```
 bullbot-signals/
 ├── src/
-│   ├── core/                       # 🎯 Lógica central (domínio)
-│   │   ├── models/                 # Entidades de negócio
-│   │   │   ├── crypto.py          # RSIData, PolygonRSIResponse
-│   │   │   └── signals.py         # TradingSignal, SignalType
-│   │   └── services/               # Serviços de negócio
-│   │       └── rsi_service.py     # Análise RSI e sinais
-│   ├── adapters/                   # 🔌 Integrações externas
-│   │   └── gate_client.py         # Cliente Gate.io
-│   ├── api/                        # 🌐 Interface HTTP
-│   │   ├── schemas/                # DTOs de serialização
-│   │   │   ├── common.py          # Schemas genéricos
-│   │   │   └── rsi.py             # DTOs específicos RSI
-│   │   ├── routes.py              # Endpoints RSI
-│   │   └── main.py                # App principal
-│   └── utils/                      # 🛠️ Utilitários
-│       ├── config.py              # Configurações
-│       └── logger.py              # Logging
-├── tests/                          # 🧪 Testes
-├── docker-compose.yml              # 🐳 Configuração Docker
-├── Dockerfile                      # 🐳 Imagem Docker
-└── requirements.txt                # 📦 Dependências
+│   ├── core/                           # 🎯 Lógica central (domínio)
+│   │   ├── models/                     # Entidades de negócio
+│   │   │   ├── crypto.py              # RSIData, EMAData, MACDData, VolumeData
+│   │   │   └── signals.py             # TradingSignal, SignalType
+│   │   └── services/                   # Serviços de negócio
+│   │       ├── rsi_calculator.py      # Cálculo RSI puro
+│   │       ├── ema_calculator.py      # Cálculo EMAs (9, 21, 50)
+│   │       ├── macd_calculator.py     # Cálculo MACD e sinais
+│   │       ├── volume_analyzer.py     # Volume, OBV, VWAP
+│   │       ├── confluence_analyzer.py # Sistema de confluência
+│   │       ├── rsi_service.py         # Orquestração principal
+│   │       └── signal_filter.py       # Filtros anti-spam
+│   ├── adapters/                       # 🔌 Integrações externas
+│   │   ├── binance_client.py          # Cliente Binance
+│   │   ├── gate_client.py             # Cliente Gate.io
+│   │   └── mexc_client.py             # Cliente MEXC
+│   ├── api/                            # 🌐 Interface HTTP
+│   │   ├── schemas/                    # DTOs de serialização
+│   │   ├── routes/                     # Endpoints organizados
+│   │   └── main.py                    # App principal
+│   ├── tasks/                          # ⚡ Processamento assíncrono
+│   │   ├── celery_app.py              # Configuração Celery
+│   │   └── monitor_tasks.py           # Monitoramento automático
+│   ├── database/                       # 💾 Persistência
+│   │   ├── models.py                  # Modelos SQLAlchemy
+│   │   └── connection.py              # Conexão DB
+│   └── utils/                          # 🛠️ Utilitários
+│       ├── config.py                  # Configurações indicadores
+│       ├── logger.py                  # Logging estruturado
+│       └── trading_coins.py           # Curação de moedas
+├── tests/                              # 🧪 Testes
+├── docker-compose.yml                  # 🐳 Configuração Docker
+├── Dockerfile                          # 🐳 Imagem Docker
+└── requirements.txt                    # 📦 Dependências
+```
+
+### 🔄 Integração com bullbot-telegram
+
+O **BullBot Signals** funciona como **engine de análise** que alimenta os grupos do Telegram:
+
+```
+[bullbot-telegram] ←→ [bullbot-signals]
+     ↓                        ↓
+📱 Grupos Telegram    🧮 Análise Confluência
+📊 Configurações     📊 Scores 0-8 pontos  
+⚙️ Filtros           🎯 Sinais precisos
+👥 Usuários          📈 Multi-exchange
 ```
 
 ## 📝 Rate Limits
 
-- **Gate.io**: Não especificado na documentação pública
-- **Recomendação**: Use com moderação e implemente rate limiting se necessário
+- **Binance**: 1200 requests/min (exchange principal recomendada)
+- **Gate.io**: Não especificado na documentação pública  
+- **MEXC**: 20 requests por segundo
+- **Recomendação**: Sistema gerencia rate limiting automaticamente
+
+## 🤖 Integração com Telegram
+
+O **BullBot Signals** é projetado para alimentar grupos do Telegram através do projeto **bullbot-telegram**. O fluxo completo funciona assim:
+
+### 📊 Fluxo de Sinais
+
+1. **Análise Contínua**: Sistema monitora múltiplas criptomoedas em tempo real
+2. **Confluência**: Combina RSI + EMA + MACD + Volume para score 0-8
+3. **Filtros**: Aplica anti-spam e cooldowns configuráveis
+4. **API**: Envia sinal via API para bullbot-telegram
+5. **Telegram**: Bot publica no grupo com formatação rica
+
+### 🎯 Exemplo de Mensagem no Telegram
+
+```
+🎯 SINAL DE COMPRA STRONG - BTC/15m
+
+📊 Score de Confluência: 6/8 ⭐⭐⭐
+├─ RSI: 18.4 (sobrevenda) ✅ +2pt
+├─ EMA: Tendência de alta ✅ +3pt  
+│  • EMA9: $67,234 > EMA21: $66,825 > EMA50: $66,210
+│  • Preço acima de todas as médias
+├─ MACD: Cruzamento bullish ✅ +1pt
+│  • Linha: 234.12 > Sinal: 167.89
+│  • Histograma: +66.23 (positivo)
+└─ Volume: Normal ❌ +0pt
+   • Ratio: 85% da média (abaixo do threshold)
+   • OBV: Tendência de alta ✅
+
+💰 Preço Atual: $67,530.25
+📈 Timeframe: 15 minutos
+⚡ Exchange: Binance
+🎚️ Força: STRONG (6/8 = 75%)
+⚠️ Risco: BAIXO
+
+💡 Recomendação: Entry com stop em EMA21 ($66,825)
+
+🔗 TradingView | 📊 Binance
+```
+
+### ⚙️ Configuração Dinâmica
+
+Cada grupo pode ter configurações personalizadas via **bullbot-telegram**:
+
+- **Indicadores**: Habilitar/desabilitar RSI, EMA, MACD, Volume
+- **Thresholds**: Score mínimo por timeframe (15m: 4, 4h: 5)
+- **Filtros**: Cooldown personalizado por força do sinal
+- **Símbolos**: Lista customizada de criptomoedas
+- **Exchanges**: Preferência entre Binance, Gate.io, MEXC
+
+### 🎛️ Controles Anti-Spam Avançados
+
+| Timeframe | STRONG | MODERATE | WEAK |
+|-----------|--------|----------|------|
+| **15m** | 15min | 30min | 60min |
+| **1h** | 60min | 120min | 240min |
+| **4h** | 120min | 240min | 360min |
+| **1d** | 360min | 720min | 1440min |
+
+**Limites Globais**:
+- **3 sinais máx/símbolo/dia** 
+- **2 sinais STRONG máx/símbolo/dia**
+- **Diferença RSI mínima: 2.0 pontos**
+- **Score mínimo**: 4+ pontos (50%+ confluência)
 
 ## 🤝 Contribuição
 
@@ -306,42 +565,14 @@ bullbot-signals/
 
 - Use **type hints** em todas as funções
 - Documente com docstrings em português
-- Siga o padrão **Black** para formatação
-- Escreva testes para novas funcionalidades
+- Siga o padrão **Ruff** para formatação (88 chars por linha)
+- Implemente testes para calculadores de indicadores
+- **Clean Architecture**: Mantenha separação clara entre camadas
+- **Confluência**: Novos indicadores devem seguir padrão de score 0-N
+- **Configuração**: Use `config.py` para parâmetros padrão
 
 
 ### 🐳 Containerização Obrigatória
 - **SEMPRE execute comandos Python em containers**
 - Use `docker-compose exec app` para todos os comandos Python
 - Nunca execute Python diretamente no ambiente local
-
-
-# Trading Coins - Sistema de Curação de Moedas
-
-## Visão Geral
-
-O sistema **Trading Coins** é responsável por curar e manter uma lista atualizada das melhores moedas para trading, baseado em critérios específicos como market cap, volume de negociação e disponibilidade nas exchanges suportadas.
-
-## Funcionalidades
-
-- **Busca automática** de dados da CoinGecko API
-- **Filtragem inteligente** baseada em critérios de trading
-- **Atualização automática** via Celery a cada 7 dias
-- **Suporte a múltiplas exchanges** (Binance, MEXC, Gate)
-- **Armazenamento em CSV e JSON** para fácil acesso
-
-## Critérios de Filtragem
-
-### Market Cap
-- Mínimo: $50M (configurável)
-- Foco em moedas com liquidez adequada
-
-### Volume de Negociação
-- Mínimo: $3M em 24h (configurável)
-- Suporte a períodos: 24h, 7d, 30d
-
-### Exclusões Automáticas
-- **Stablecoins**: USDT, USDC, BUSD, etc.
-- **Meme tokens**: Tokens baseados em memes
-- **Wrapped tokens**: Tokens embrulhados
-- **Governance tokens**: Tokens de governança

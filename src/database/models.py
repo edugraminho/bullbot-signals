@@ -105,7 +105,7 @@ class UserMonitoringConfig(Base):
 
     # Configuração de ativos
     symbols = Column(ARRAY(String), nullable=False)  # Lista de símbolos
-    timeframes = Column(ARRAY(String), default=["15m", "1h", "4h"])
+    timeframes = Column(ARRAY(String), default=["15m"])
 
     # Configuração de indicadores (estrutura flexível JSON)
     indicators_config = Column(JSON, nullable=False)
@@ -116,11 +116,34 @@ class UserMonitoringConfig(Base):
     #         "oversold": 20,
     #         "overbought": 80
     #     },
+    #     "EMA": {
+    #         "enabled": true,
+    #         "short_period": 9,
+    #         "medium_period": 21,
+    #         "long_period": 50
+    #     },
     #     "MACD": {
-    #         "enabled": false,
+    #         "enabled": true,
     #         "fast_period": 12,
     #         "slow_period": 26,
     #         "signal_period": 9
+    #     },
+    #     "Volume": {
+    #         "enabled": true,
+    #         "sma_period": 20,
+    #         "threshold_multiplier": 1.2
+    #     },
+    #     "Bollinger": {
+    #         "enabled": false,
+    #         "period": 20,
+    #         "std_dev": 2.0
+    #     },
+    #     "Confluence": {
+    #         "enabled": true,
+    #         "min_score_15m": 4,
+    #         "min_score_1h": 4,
+    #         "min_score_4h": 5,
+    #         "min_score_1d": 5
     #     }
     # }
 

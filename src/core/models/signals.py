@@ -29,7 +29,7 @@ class SignalStrength(str, Enum):
 
 
 class TradingSignal(BaseModel):
-    """Sinal de trading baseado em RSI"""
+    """Sinal de trading baseado em confluência de indicadores"""
 
     symbol: str = Field(..., description="Crypto symbol")
     signal_type: SignalType = Field(..., description="Tipo do sinal")

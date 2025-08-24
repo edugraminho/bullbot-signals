@@ -5,9 +5,7 @@ Tasks principais de monitoramento RSI
 import asyncio
 import time
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
-
-from celery import group
+from typing import List
 
 from src.core.services.rsi_service import RSIService
 from src.core.services.signal_filter import signal_filter
@@ -26,7 +24,6 @@ class MonitorTaskConfig:
 
     def __init__(self):
         self.rsi_window = settings.rsi_calculation_window
-        self.rsi_timeframe = settings.rsi_analysis_timeframe
         self.max_retries = settings.task_max_retry_attempts
         self.retry_countdown = settings.task_retry_delay_seconds
         self.cleanup_days = settings.signal_history_retention_days
@@ -326,27 +323,32 @@ def process_single_symbol(
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        rsi_data = loop.run_until_complete(
-            rsi_service.get_rsi(symbol, rsi_timeframe, rsi_window, exchange)
+        # Usar análise de confluência em vez de RSI puro
+        confluence_result = loop.run_until_complete(
+            rsi_service.analyze_signal(symbol, rsi_timeframe, rsi_window, exchange)
         )
 
-        if not rsi_data:
+        if not confluence_result:
             # Moeda não encontrada - remover exchange da lista
             from src.utils.trading_coins import trading_coins
 
             trading_coins.remove_exchange_from_coin(symbol, exchange)
             return {"status": "no_data", "symbol": symbol, "exchange": exchange}
 
-        # Analisar RSI
-        analysis = rsi_service.analyze_rsi(rsi_data)
+        # O analyze_signal já retorna ConfluenceResult com sinal (se houver)
+        analysis = confluence_result
 
-        # Log breve da moeda e RSI (apenas para sinais relevantes)
+        # Log breve da moeda e confluência (apenas para sinais relevantes)
 
-        if not analysis:
+        if not analysis or not analysis.signal:
+            rsi_value = analysis.signal.rsi_value if analysis and analysis.signal else 0
             return {
                 "status": "neutral_zone",
                 "symbol": symbol,
-                "rsi_value": rsi_data.value,
+                "rsi_value": rsi_value,
+                "confluence_score": analysis.confluence_score.total_score
+                if analysis
+                else 0,
             }
 
         # Obter configurações de filtro dos usuários ativos
@@ -381,43 +383,38 @@ def process_single_symbol(
             try:
                 db = SessionLocal()
 
-                # Criar registro do sinal
+                # Criar registro do sinal com dados de confluência
                 signal_record = SignalHistory(
                     symbol=symbol,
                     signal_type=analysis.signal.signal_type.value,
                     strength=analysis.signal.strength.value,
-                    price=float(rsi_data.current_price),
+                    price=float(
+                        analysis.signal.rsi_value
+                    ),  # Usar RSI como preço de referência
                     timeframe=rsi_timeframe,
                     source=exchange,
-                    message=f"RSI {float(rsi_data.value):.2f} - {analysis.signal.signal_type.value} signal",
-                    indicator_type=["RSI"],
+                    message=analysis.signal.message,  # Usar mensagem da confluência
+                    indicator_type=["RSI", "EMA", "MACD", "Volume", "Confluence"],
                     indicator_data={
-                        "rsi_value": float(rsi_data.value),
-                        "rsi_window": rsi_window,
-                        "oversold_level": float(rsi_service.rsi_levels.oversold),
-                        "overbought_level": float(rsi_service.rsi_levels.overbought),
+                        "confluence_score": {
+                            "total_score": analysis.confluence_score.total_score,
+                            "max_possible_score": analysis.confluence_score.max_possible_score,
+                            "details": analysis.confluence_score.details,
+                        },
+                        "rsi_value": float(analysis.signal.rsi_value),
+                        "recommendation": analysis.recommendation,
+                        "risk_level": analysis.risk_level,
                     },
                     indicator_config={
                         "rsi_window": rsi_window,
                         "timeframe": rsi_timeframe,
                         "exchange": exchange,
+                        "confluence_enabled": True,
                     },
-                    volume_24h=float(rsi_data.volume_24h)
-                    if hasattr(rsi_data, "volume_24h")
-                    and rsi_data.volume_24h is not None
-                    else None,
-                    price_change_24h=float(rsi_data.price_change_24h)
-                    if hasattr(rsi_data, "price_change_24h")
-                    and rsi_data.price_change_24h is not None
-                    else None,
-                    confidence_score=float(analysis.confidence_score)
-                    if hasattr(analysis, "confidence_score")
-                    and analysis.confidence_score is not None
-                    else None,
-                    combined_score=float(analysis.combined_score)
-                    if hasattr(analysis, "combined_score")
-                    and analysis.combined_score is not None
-                    else None,
+                    volume_24h=None,  # Volume será calculado pelos indicadores de volume
+                    price_change_24h=None,  # Não disponível no ConfluenceResult
+                    confidence_score=None,  # Usar combined_score como alternativa
+                    combined_score=float(analysis.confluence_score.total_score),
                     processed=False,  # Aguardando processamento pelo bot do Telegram
                     processing_time_ms=int((time.time() - symbol_start_time) * 1000),
                 )
@@ -430,7 +427,7 @@ def process_single_symbol(
 
                 logger.info(
                     f"💾 SINAL SALVO NO BANCO: {symbol} | {analysis.signal.signal_type.value} | "
-                    f"RSI: {float(rsi_data.value):.2f} | ID: {signal_id}"
+                    f"RSI: {float(analysis.signal.rsi_value):.2f} | Score: {analysis.confluence_score.total_score}/8 | ID: {signal_id}"
                 )
 
             except Exception as db_error:
@@ -442,19 +439,25 @@ def process_single_symbol(
 
             logger.info(
                 f"📡 🚀 SINAL DETECTADO: {symbol} | {analysis.signal.signal_type.value} | "
-                f"RSI: {float(rsi_data.value):.2f}"
+                f"RSI: {float(analysis.signal.rsi_value):.2f} | Score: {analysis.confluence_score.total_score}/8"
             )
 
             return {
                 "status": "signal_sent",
                 "symbol": symbol,
                 "signal_type": analysis.signal.signal_type.value,
-                "rsi_value": float(rsi_data.value),
+                "rsi_value": float(analysis.signal.rsi_value),
+                "confluence_score": analysis.confluence_score.total_score,
                 "signal_id": signal_id,
             }
 
         else:
-            return {"status": "filtered", "symbol": symbol, "rsi_value": rsi_data.value}
+            return {
+                "status": "filtered",
+                "symbol": symbol,
+                "rsi_value": float(analysis.signal.rsi_value),
+                "confluence_score": analysis.confluence_score.total_score,
+            }
 
     except Exception as e:
         logger.error(f"❌ Erro ao processar {symbol} na {exchange}: {e}")
@@ -531,9 +534,9 @@ def get_active_timeframes() -> List[str]:
         if not active_configs:
             logger.warning("⚠️ Nenhuma configuração de usuário ativa para timeframes")
             db.close()
-            # Fallback para timeframes padrão
-            default_timeframes = ["15m", "1h", "4h"]
-            logger.info(f"Usando timeframes padrão: {default_timeframes}")
+            # Fallback para timeframes do config.py
+            default_timeframes = settings.default_monitoring_timeframes
+            logger.info(f"Usando timeframes padrão do config.py: {default_timeframes}")
             return default_timeframes
 
         # Agregar timeframes únicos de todas as configurações ativas
@@ -552,15 +555,15 @@ def get_active_timeframes() -> List[str]:
 
         if len(timeframes) == 0:
             logger.warning("⚠️ Nenhum timeframe encontrado nas configurações ativas")
-            timeframes = ["15m", "1h", "4h"]  # fallback
+            timeframes = settings.default_monitoring_timeframes  # fallback do config.py
 
         db.close()
         return timeframes
 
     except Exception as e:
         logger.error(f"❌ Erro ao agregar timeframes das configurações: {e}")
-        # Fallback para timeframes padrão
-        return ["15m", "1h", "4h"]
+        # Fallback para timeframes do config.py
+        return settings.default_monitoring_timeframes
 
 
 def get_active_monitoring_configs() -> List[UserMonitoringConfig]:

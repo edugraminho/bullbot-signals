@@ -8,7 +8,6 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
 import redis
 from src.core.models.signals import SignalStrength, SignalType
-from src.core.services.rsi_service import RSIAnalysis
 from src.utils.logger import get_logger
 from src.utils.config import settings
 
@@ -212,7 +211,7 @@ class SignalFilter:
     async def should_send_signal(
         self,
         symbol: str,
-        analysis: RSIAnalysis,
+        analysis_or_confluence,  # Aceita RSIAnalysis ou ConfluenceResult
         user_filter_configs: Optional[List[Dict[str, Any]]] = None,
     ) -> bool:
         """
@@ -220,13 +219,40 @@ class SignalFilter:
 
         Args:
             symbol: Símbolo da crypto
-            analysis: Análise RSI com sinal
+            analysis_or_confluence: RSIAnalysis ou ConfluenceResult com sinal
             user_filter_configs: Lista de filter_config dos usuários ativos
 
         Returns:
             True se deve enviar, False caso contrário
         """
         try:
+            # Detectar tipo e extrair informações necessárias
+            if hasattr(analysis_or_confluence, "signal") and hasattr(
+                analysis_or_confluence, "confluence_score"
+            ):
+                # É ConfluenceResult
+                signal = analysis_or_confluence.signal
+                rsi_value = signal.rsi_value if signal else 0
+                timeframe = signal.timeframe if signal else "15m"
+                strength = signal.strength if signal else SignalStrength.WEAK
+                signal_type = signal.signal_type if signal else SignalType.BUY
+            elif hasattr(analysis_or_confluence, "signal") and hasattr(
+                analysis_or_confluence, "rsi_data"
+            ):
+                # É RSIAnalysis (legacy)
+                signal = analysis_or_confluence.signal
+                rsi_value = analysis_or_confluence.rsi_data.value
+                timeframe = signal.timeframe
+                strength = signal.strength
+                signal_type = signal.signal_type
+            else:
+                logger.error(f"Tipo de análise não reconhecido para {symbol}")
+                return False
+
+            if not signal:
+                logger.debug(f"Nenhum sinal gerado para {symbol}")
+                return False
+
             # Agregar configurações de filtro dos usuários
             aggregated_filter_config = self._get_user_filter_configs(
                 user_filter_configs or []
@@ -240,29 +266,29 @@ class SignalFilter:
             # 1. Verificar cooldown básico
             if await self._is_in_cooldown(
                 symbol,
-                analysis.signal.timeframe,
-                analysis.signal.strength,
+                timeframe,
+                strength,
                 aggregated_filter_config,
             ):
                 logger.debug(f"Sinal {symbol} em cooldown")
                 return False
 
             # 2. Verificar se sinal é mais forte que o anterior
-            if not await self._is_stronger_signal(
-                symbol, analysis, aggregated_filter_config
+            if not await self._is_stronger_signal_generic(
+                symbol, rsi_value, signal_type, timeframe, aggregated_filter_config
             ):
                 logger.debug(f"Sinal {symbol} não é mais forte que o anterior")
                 return False
 
             # 3. Verificar limites diários
             if await self._exceeded_daily_limits(
-                symbol, analysis.signal.strength, aggregated_filter_config
+                symbol, strength, aggregated_filter_config
             ):
                 logger.debug(f"🚫 Limites diários excedidos para {symbol}")
                 return False
 
             logger.info(
-                f"Sinal aprovado para {symbol}: {analysis.signal.signal_type.value} (RSI: {analysis.rsi_data.value:.2f})"
+                f"Sinal aprovado para {symbol}: {signal_type.value} (RSI: {rsi_value:.2f})"
             )
             return True
 
@@ -304,14 +330,16 @@ class SignalFilter:
             logger.error(f"❌ Erro ao verificar cooldown: {e}")
             return True  # Em caso de erro, assumir que está em cooldown
 
-    async def _is_stronger_signal(
+    async def _is_stronger_signal_generic(
         self,
         symbol: str,
-        analysis: RSIAnalysis,
+        current_rsi: float,
+        signal_type: SignalType,
+        timeframe: str,
         user_filter_config: Optional[Dict[str, Any]] = None,
     ) -> bool:
-        """Verifica se o sinal atual é mais forte que o último enviado"""
-        key = f"last_rsi:{symbol}:{analysis.signal.timeframe}"
+        """Verifica se o sinal atual é mais forte que o último enviado (versão genérica)"""
+        key = f"last_rsi:{symbol}:{timeframe}"
 
         try:
             last_rsi = self.redis_client.get(key)
@@ -319,7 +347,6 @@ class SignalFilter:
                 return True  # Primeiro sinal sempre é válido
 
             last_rsi_value = float(last_rsi)
-            current_rsi = analysis.rsi_data.value
 
             # Usar min_rsi_difference personalizado ou padrão
             min_difference = 2.0  # padrão
@@ -331,7 +358,7 @@ class SignalFilter:
                 logger.debug(f"Usando diferença RSI padrão: {min_difference}")
 
             # Para sinais de compra: RSI deve estar mais baixo (mais oversold)
-            if analysis.signal.signal_type in [SignalType.BUY, SignalType.STRONG_BUY]:
+            if signal_type in [SignalType.BUY, SignalType.STRONG_BUY]:
                 is_stronger = current_rsi < last_rsi_value - min_difference
                 logger.debug(
                     f"BUY check: {current_rsi:.2f} < {last_rsi_value:.2f} - {min_difference} = {is_stronger}"
@@ -339,10 +366,7 @@ class SignalFilter:
                 return is_stronger
 
             # Para sinais de venda: RSI deve estar mais alto (mais overbought)
-            elif analysis.signal.signal_type in [
-                SignalType.SELL,
-                SignalType.STRONG_SELL,
-            ]:
+            elif signal_type in [SignalType.SELL, SignalType.STRONG_SELL]:
                 is_stronger = current_rsi > last_rsi_value + min_difference
                 logger.debug(
                     f"SELL check: {current_rsi:.2f} > {last_rsi_value:.2f} + {min_difference} = {is_stronger}"
@@ -354,6 +378,21 @@ class SignalFilter:
         except Exception as e:
             logger.error(f"❌ Erro ao verificar força do sinal: {e}")
             return False
+
+    async def _is_stronger_signal(
+        self,
+        symbol: str,
+        analysis,  # Mantido para compatibilidade
+        user_filter_config: Optional[Dict[str, Any]] = None,
+    ) -> bool:
+        """Método legacy - mantido para compatibilidade"""
+        return await self._is_stronger_signal_generic(
+            symbol,
+            analysis.rsi_data.value,
+            analysis.signal.signal_type,
+            analysis.signal.timeframe,
+            user_filter_config,
+        )
 
     async def _exceeded_daily_limits(
         self,
@@ -414,17 +453,36 @@ class SignalFilter:
     async def mark_signal_sent(
         self,
         symbol: str,
-        analysis: RSIAnalysis,
+        analysis_or_confluence,  # Aceita RSIAnalysis ou ConfluenceResult
         user_filter_config: Optional[Dict[str, Any]] = None,
     ):
         """Marca que o sinal foi enviado - atualiza contadores"""
 
-        timeframe = analysis.signal.timeframe
-        strength = analysis.signal.strength
-        rsi_value = analysis.rsi_data.value
-        today = datetime.now().strftime("%Y-%m-%d")
-
         try:
+            # Detectar tipo e extrair informações necessárias
+            if hasattr(analysis_or_confluence, "signal") and hasattr(
+                analysis_or_confluence, "confluence_score"
+            ):
+                # É ConfluenceResult
+                signal = analysis_or_confluence.signal
+                timeframe = signal.timeframe if signal else "15m"
+                strength = signal.strength if signal else SignalStrength.WEAK
+                rsi_value = signal.rsi_value if signal else 0
+            elif hasattr(analysis_or_confluence, "signal") and hasattr(
+                analysis_or_confluence, "rsi_data"
+            ):
+                # É RSIAnalysis (legacy)
+                timeframe = analysis_or_confluence.signal.timeframe
+                strength = analysis_or_confluence.signal.strength
+                rsi_value = analysis_or_confluence.rsi_data.value
+            else:
+                logger.error(
+                    f"Tipo de análise não reconhecido para marcar sinal enviado: {symbol}"
+                )
+                return
+
+            today = datetime.now().strftime("%Y-%m-%d")
+
             # Atualizar cooldown com configuração personalizada
             cooldown_key = f"cooldown:{symbol}:{timeframe}"
             cooldown_duration = self._get_cooldown_duration(
