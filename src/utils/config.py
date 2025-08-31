@@ -80,76 +80,6 @@ class Settings(BaseSettings):
         2.0  # Diferença mínima de RSI para novo sinal
     )
 
-    # Símbolos padrão para monitoramento
-    default_crypto_symbols: List[str] = [
-        "BTC",
-        "ETH",
-        "SOL",
-        "AAVE",
-        "AERO",
-        "AGI",
-        "ANKR",
-        "BLOCK",
-        "ADA",
-        "ATOM",
-        "CELR",
-        "DAO",
-        "AVAX",
-        "DOT",
-        "ASTR",
-        "ENJ",
-        "GHX",
-        "FET",
-        "HNT",
-        "ATH",
-        "HOT",
-        "MUBI",
-        "HBAR",
-        "LDO",
-        "AXL",
-        "KSM",
-        "XRD",
-        "IMX",
-        "BLUR",
-        "MANTA",
-        "INJ",
-        "PENDLE",
-        "CHZ",
-        "PRCL",
-        "LINK",
-        "SEI",
-        "DRIFT",
-        "MKR",
-        "SUPER",
-        "DYDX",
-        "SAND",
-        "NEAR",
-        "TIA",
-        "ENA",
-        "SFUND",
-        "ONDO",
-        "VET",
-        "ETHFI",
-        "SNX",
-        "RNDR",
-        "VIRTUAL",
-        "GALA",
-        "SPEC",
-        "JUP",
-        "TAI",
-        "STX",
-        "LPT",
-        "SUI",
-        "PAAL",
-        "TON",
-        "PRIME",
-        "UNI",
-        "RAY",
-        "RON",
-        "SCRT",
-        "UMA",
-        "USUAL",
-    ]
 
     # Configurações de Limpeza e Retry
     signal_history_retention_days: int = 30  # Dias para manter histórico de sinais
@@ -187,8 +117,8 @@ class Settings(BaseSettings):
     celery_task_acknowledge_late: bool = True  # Confirmar task só após conclusão
 
     # Configurações de Timeout (segundos)
-    celery_task_warning_timeout: int = 600  # 10 min - aviso de timeout
-    celery_task_force_kill_timeout: int = 900  # 15 min - força encerramento
+    celery_task_warning_timeout: int = 7200  # 2h - aviso de timeout
+    celery_task_force_kill_timeout: int = 9000  # 2.5h - força encerramento
 
     # Configurações de Memória
     celery_max_memory_per_child: int = 400000  # 400MB por processo filho (KB)
@@ -201,11 +131,14 @@ class Settings(BaseSettings):
     api_max_symbols_per_request: int = 200
 
     # Configurações do Trading Coins - src/utils/trading_coins.py
-    trading_coins_volume_period: str = "24h"  # 24h, 7d, 30d
     trading_coins_min_market_cap: int = 50_000_000  # $50M
     trading_coins_min_volume: int = 3_000_000  # $3M
-    trading_coins_update_interval_days: int = 7  # Atualizar lista a cada 7 dias
-    trading_coins_max_limit: int = 500  # Máximo de moedas para buscar das exchanges
+    trading_coins_update_interval_days: int = 30  # Atualizar lista a cada 30 dias
+    trading_coins_max_limit: int = 700  # Máximo de moedas para buscar das exchanges
+
+    # Configurações CoinGecko OHLC
+    coingecko_rate_limit_seconds: int = 6  # Rate limit para API pública
+    coingecko_ohlc_default_days: str = "1"  # Período padrão para dados OHLC
 
     # Blacklist de moedas (stablecoins + problemáticas)
     trading_coins_blacklist: List[str] = [
@@ -248,7 +181,7 @@ class Settings(BaseSettings):
         "XPR",
         "RPL",
         "WETH",
-        "SIGKILL",
+        "NFT",
     ]
 
     class Config:

@@ -319,16 +319,18 @@ class RSIService:
         """
         dict_data = []
         for ohlcv in ohlcv_data:
-            dict_data.append({
-                "symbol": ohlcv.symbol,
-                "timestamp": ohlcv.timestamp,
-                "open": float(ohlcv.open),
-                "high": float(ohlcv.high),
-                "low": float(ohlcv.low),
-                "close": float(ohlcv.close),
-                "volume": float(ohlcv.volume),
-                "timespan": ohlcv.timespan,
-            })
+            dict_data.append(
+                {
+                    "symbol": ohlcv.symbol,
+                    "timestamp": ohlcv.timestamp,
+                    "open": float(ohlcv.open),
+                    "high": float(ohlcv.high),
+                    "low": float(ohlcv.low),
+                    "close": float(ohlcv.close),
+                    "volume": float(ohlcv.volume),
+                    "timespan": ohlcv.timespan,
+                }
+            )
         return dict_data
 
     async def analyze_signal(

@@ -14,7 +14,6 @@ from src.database.models import UserMonitoringConfig, SignalHistory
 from src.tasks.celery_app import celery_app
 from src.utils.config import settings
 from src.utils.logger import get_logger
-from src.utils.trading_coins import trading_coins
 
 logger = get_logger(__name__, level="INFO")
 
@@ -27,7 +26,6 @@ class MonitorTaskConfig:
         self.max_retries = settings.task_max_retry_attempts
         self.retry_countdown = settings.task_retry_delay_seconds
         self.cleanup_days = settings.signal_history_retention_days
-        self.default_symbols = settings.default_crypto_symbols
 
 
 # Instância global de configuração
@@ -47,6 +45,8 @@ def update_trading_coins(self):
         asyncio.set_event_loop(loop)
 
         try:
+            from src.utils.trading_coins import trading_coins
+
             coins = loop.run_until_complete(trading_coins.update_trading_list())
 
             if coins:
@@ -99,20 +99,13 @@ def monitor_rsi_signals(self):
             self.apply_async(countdown=60)
             return {"status": "no_symbols"}
 
-        # Distribuir símbolos por exchange para rate limiting
-        symbol_batches = distribute_symbols_by_exchange(symbols)
+        # Usar exchanges padrão para todos os símbolos
+        exchanges_with_symbols = {"binance": symbols, "mexc": symbols, "gate": symbols}
 
         # Criar chain sequencial de tasks
         from celery import chord
 
-        # Filtrar exchanges com símbolos
-        exchanges_with_symbols = {
-            exchange: batch_symbols
-            for exchange, batch_symbols in symbol_batches.items()
-            if batch_symbols
-        }
-
-        if not exchanges_with_symbols:
+        if not symbols:
             logger.warning("Nenhuma exchange com símbolos para processar")
             # Agendar próxima execução mesmo sem exchanges
             self.apply_async(countdown=60)
@@ -329,10 +322,6 @@ def process_single_symbol(
         )
 
         if not confluence_result:
-            # Moeda não encontrada - remover exchange da lista
-            from src.utils.trading_coins import trading_coins
-
-            trading_coins.remove_exchange_from_coin(symbol, exchange)
             return {"status": "no_data", "symbol": symbol, "exchange": exchange}
 
         # O analyze_signal já retorna ConfluenceResult com sinal (se houver)
@@ -472,26 +461,17 @@ def get_active_symbols() -> List[str]:
     """Agregar símbolos de TODAS as configurações ativas de usuários"""
     try:
         db = SessionLocal()
-        # Buscar TODAS as configurações ativas (não apenas a primeira)
+        # Buscar TODAS as configurações ativas
         active_configs = (
             db.query(UserMonitoringConfig)
-            .filter(
-                UserMonitoringConfig.active == True  # noqa: E712
-            )
+            .filter(UserMonitoringConfig.active == True)  # noqa: E712
             .all()
         )
 
         if not active_configs:
             logger.warning("⚠️ Nenhuma configuração de usuário ativa encontrada")
             db.close()
-            # Fallback para lista padrão apenas se não há configurações
-            fallback_symbols = trading_coins.get_trading_symbols(
-                limit=settings.trading_coins_max_limit
-            )
-            logger.info(
-                f"Usando {len(fallback_symbols)} símbolos do fallback (trading coins)"
-            )
-            return fallback_symbols
+            return []
 
         # Agregar símbolos únicos de todas as configurações ativas
         all_symbols = set()
@@ -504,18 +484,16 @@ def get_active_symbols() -> List[str]:
 
         symbols = list(all_symbols)
 
-        if len(symbols) == 0:
-            logger.warning("⚠️ Nenhum símbolo encontrado nas configurações ativas")
+        logger.info(
+            f"Encontrados {len(symbols)} símbolos únicos de {config_count} configurações ativas"
+        )
 
         db.close()
         return symbols
 
     except Exception as e:
         logger.error(f"❌ Erro ao agregar símbolos das configurações: {e}")
-        # Fallback para lista padrão em caso de erro
-        fallback_symbols = task_config.default_symbols
-        logger.info(f"Usando {len(fallback_symbols)} símbolos do fallback padrão")
-        return fallback_symbols
+        return []
 
 
 def get_active_timeframes() -> List[str]:
@@ -534,10 +512,7 @@ def get_active_timeframes() -> List[str]:
         if not active_configs:
             logger.warning("⚠️ Nenhuma configuração de usuário ativa para timeframes")
             db.close()
-            # Fallback para timeframes do config.py
-            default_timeframes = settings.default_monitoring_timeframes
-            logger.info(f"Usando timeframes padrão do config.py: {default_timeframes}")
-            return default_timeframes
+            return []
 
         # Agregar timeframes únicos de todas as configurações ativas
         all_timeframes = set()
@@ -555,15 +530,13 @@ def get_active_timeframes() -> List[str]:
 
         if len(timeframes) == 0:
             logger.warning("⚠️ Nenhum timeframe encontrado nas configurações ativas")
-            timeframes = settings.default_monitoring_timeframes  # fallback do config.py
 
         db.close()
         return timeframes
 
     except Exception as e:
         logger.error(f"❌ Erro ao agregar timeframes das configurações: {e}")
-        # Fallback para timeframes do config.py
-        return settings.default_monitoring_timeframes
+        return []
 
 
 def get_active_monitoring_configs() -> List[UserMonitoringConfig]:
@@ -582,40 +555,6 @@ def get_active_monitoring_configs() -> List[UserMonitoringConfig]:
     except Exception as e:
         logger.error(f"❌ Erro ao obter configurações de monitoramento: {e}")
         return []
-
-
-def distribute_symbols_by_exchange(symbols: List[str]) -> dict:
-    """
-    Distribuir símbolos entre as exchanges baseado na disponibilidade no CSV
-
-    Args:
-        symbols: Lista de todos os símbolos
-
-    Returns:
-        Dict com exchange -> lista de símbolos
-    """
-    # Carregar dados do CSV para verificar exchanges disponíveis
-    coins = trading_coins.load_from_csv()
-    coin_exchanges = {coin.symbol: coin.exchanges for coin in coins}
-
-    # Inicializar listas por exchange
-    exchange_symbols = {"binance": [], "gate": [], "mexc": []}
-
-    # Distribuir símbolos baseado nas exchanges disponíveis
-    for symbol in symbols:
-        available_exchanges = coin_exchanges.get(symbol, [])
-
-        if not available_exchanges:
-            # Se não há exchanges, pular
-            continue
-
-        # Distribuir para a primeira exchange disponível
-        for exchange in ["binance", "gate", "mexc"]:
-            if exchange in available_exchanges:
-                exchange_symbols[exchange].append(symbol)
-                break
-
-    return exchange_symbols
 
 
 @celery_app.task

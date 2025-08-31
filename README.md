@@ -37,6 +37,87 @@ O BullBot Signals é uma aplicação de análise técnica avançada que utiliza 
 
 **Resultado**: Sinais mais confiáveis, menos falsos positivos, melhor timing de entrada.
 
+## 🔧 Configuração Manual do Sistema
+
+### Query SQL para Monitoramento Global
+
+Para configurar o sistema para monitorar **todas as moedas** automaticamente, execute a query SQL abaixo diretamente no banco de dados:
+
+```sql
+-- Inserir configuração global para monitorar todas as trading coins
+INSERT INTO user_monitoring_configs (
+    user_id, 
+    chat_id, 
+    chat_type,
+    config_name, 
+    description,
+    symbols, 
+    timeframes,
+    indicators_config,
+    active,
+    created_at,
+    updated_at
+) 
+SELECT 
+    999999 as user_id,
+    'GLOBAL_MONITORING' as chat_id,
+    'system' as chat_type,
+    'global_all_trading_coins' as config_name,
+    'Config automática para monitorar todas as trading coins em 15m' as description,
+    array_agg(DISTINCT symbol ORDER BY symbol) as symbols,
+    ARRAY['15m'] as timeframes,
+    '{
+        "RSI": {
+            "enabled": true,
+            "period": 14,
+            "oversold": 20,
+            "overbought": 80
+        },
+        "EMA": {
+            "enabled": true,
+            "short_period": 9,
+            "medium_period": 21,
+            "long_period": 50
+        },
+        "MACD": {
+            "enabled": true,
+            "fast_period": 12,
+            "slow_period": 26,
+            "signal_period": 9
+        },
+        "Volume": {
+            "enabled": true,
+            "sma_period": 20,
+            "threshold_multiplier": 1.2
+        },
+        "Confluence": {
+            "enabled": true,
+            "min_score_15m": 4
+        }
+    }'::json as indicators_config,
+    true as active,
+    NOW() as created_at,
+    NOW() as updated_at
+FROM trading_coins 
+WHERE active = true;
+```
+
+**O que esta query faz:**
+- Cria uma configuração especial de usuário (ID: 999999)
+- Inclui **todas as moedas ativas** da tabela `trading_coins`
+- Configura timeframe de **15 minutos**
+- Define indicadores padrão (RSI, EMA, MACD, Volume)
+- Sistema passa a processar automaticamente todas as moedas
+
+**Como executar:**
+```bash
+# Via Docker
+docker-compose exec db psql -U postgres -d bullbot_signals -c "INSERT INTO..."
+
+# Via pgAdmin ou outro cliente SQL
+# Cole a query diretamente no editor
+```
+
 ## ✨ Funcionalidades
 
 ### ✅ Sistema de Confluência Implementado
@@ -49,7 +130,7 @@ O BullBot Signals é uma aplicação de análise técnica avançada que utiliza 
   - **Volume**: OBV, VWAP e análise de fluxo para confirmação
 - **🎚️ Sistema de Pontuação Inteligente**: Filtragem por qualidade (4+ pontos = sinal válido)
 - **⚙️ Configuração Dinâmica**: Usuários podem personalizar via Telegram
-- **🔗 Multi-Exchange**: Binance (principal), Gate.io e MEXC com failover automático
+  - **🔗 Multi-Exchange**: Binance (principal), Gate.io e MEXC com failover automático
 
 ### ✅ Infraestrutura Robusta
 
@@ -300,7 +381,7 @@ GET /api/v1/confluence/{symbol}
 **Parâmetros:**
 - `symbol`: Símbolo da criptomoeda (ex: BTC, ETH, SOL)
 - `interval`: Intervalo (15m, 1h, 4h, 1d)
-- `source`: Fonte dos dados (binance, gate ou mexc, padrão: binance)
+  - `source`: Fonte dos dados (binance, gate ou mexc, padrão: binance)
 
 **Exemplo:**
 ```bash
@@ -536,7 +617,7 @@ Cada grupo pode ter configurações personalizadas via **bullbot-telegram**:
 - **Thresholds**: Score mínimo por timeframe (15m: 4, 4h: 5)
 - **Filtros**: Cooldown personalizado por força do sinal
 - **Símbolos**: Lista customizada de criptomoedas
-- **Exchanges**: Preferência entre Binance, Gate.io, MEXC
+  - **Exchanges**: Preferência entre Binance, Gate.io, MEXC
 
 ### 🎛️ Controles Anti-Spam Avançados
 
