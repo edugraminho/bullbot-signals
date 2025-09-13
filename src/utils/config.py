@@ -80,7 +80,6 @@ class Settings(BaseSettings):
         2.0  # Diferença mínima de RSI para novo sinal
     )
 
-
     # Configurações de Limpeza e Retry
     signal_history_retention_days: int = 30  # Dias para manter histórico de sinais
     task_max_retry_attempts: int = 2  # Máximo de tentativas em caso de falha
@@ -131,14 +130,33 @@ class Settings(BaseSettings):
     api_max_symbols_per_request: int = 200
 
     # Configurações do Trading Coins - src/utils/trading_coins.py
-    trading_coins_min_market_cap: int = 50_000_000  # $50M
-    trading_coins_min_volume: int = 3_000_000  # $3M
+    trading_coins_min_market_cap: int = 5_000_000  # $50M
+    trading_coins_min_volume: int = 500_000  # $3M
     trading_coins_update_interval_days: int = 30  # Atualizar lista a cada 30 dias
-    trading_coins_max_limit: int = 700  # Máximo de moedas para buscar das exchanges
+    trading_coins_max_limit: int = 1000  # Máximo de moedas para buscar das exchanges
+
+    # Configurações de atualização de exchanges
+    trading_coins_exchanges_update_days: int = (
+        30  # Dias para forçar atualização de exchanges
+    )
 
     # Configurações CoinGecko OHLC
     coingecko_rate_limit_seconds: int = 6  # Rate limit para API pública
     coingecko_ohlc_default_days: str = "1"  # Período padrão para dados OHLC
+    coingecko_max_retries: int = 3  # Máximo de tentativas em caso de rate limit
+    coingecko_retry_backoff_base: int = 10  # Base para backoff exponencial (segundos)
+    
+    # Configurações de Filtro de Trading Coins
+    trading_coins_category: str = "layer-1"  # Categoria de moedas para buscar da CoinGecko
+    
+    # Categorias de moedas EXCLUÍDAS (não queremos essas)
+    trading_coins_category_blacklist: List[str] = [
+        "stablecoins",           # Stablecoins
+        "meme-token",           # Meme coins
+        "fan-token",            # Fan tokens
+        "wrapped-tokens",       # Wrapped tokens
+        "centralized-exchange-token",  # Exchange tokens
+    ]
 
     # Blacklist de moedas (stablecoins + problemáticas)
     trading_coins_blacklist: List[str] = [

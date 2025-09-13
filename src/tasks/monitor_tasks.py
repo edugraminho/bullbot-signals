@@ -10,7 +10,7 @@ from typing import List
 from src.core.services.rsi_service import RSIService
 from src.core.services.signal_filter import signal_filter
 from src.database.connection import SessionLocal
-from src.database.models import UserMonitoringConfig, SignalHistory
+from src.database.models import SignalHistory, UserMonitoringConfig
 from src.tasks.celery_app import celery_app
 from src.utils.config import settings
 from src.utils.logger import get_logger
@@ -33,49 +33,96 @@ task_config = MonitorTaskConfig()
 
 
 @celery_app.task(bind=True)
-def update_trading_coins(self):
+def populate_trading_coins_from_coingecko(self):
     """
-    Task para atualizar lista de trading coins - executa a cada 7 dias
+    Task para buscar e popular moedas da CoinGecko - executa quando necessário
     """
     try:
-        logger.info("Iniciando atualização da lista de trading coins")
+        logger.info("Iniciando população de trading coins da CoinGecko")
 
-        # Executar atualização
+        # Executar população
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         try:
             from src.utils.trading_coins import trading_coins
 
-            coins = loop.run_until_complete(trading_coins.update_trading_list())
+            total_coins = loop.run_until_complete(trading_coins.populate_trading_coins())
 
-            if coins:
-                logger.info(
-                    f"Lista de trading coins atualizada com {len(coins)} moedas"
-                )
+            if total_coins > 0:
+                logger.info(f"População concluída: {total_coins} moedas salvas")
 
                 return {
                     "status": "success",
-                    "total_coins": len(coins),
-                    "message": f"Lista atualizada com {len(coins)} moedas",
+                    "total_coins": total_coins,
+                    "message": f"População concluída com {total_coins} moedas",
                 }
             else:
-                logger.error("Falha ao atualizar lista de trading coins")
-                return {"status": "error", "message": "Falha ao atualizar lista"}
+                logger.error("Falha ao popular trading coins")
+                return {
+                    "status": "error",
+                    "message": "Falha ao popular trading coins",
+                }
 
         finally:
             loop.close()
 
     except Exception as e:
-        logger.error(f"❌ Erro na atualização de trading coins: {e}")
+        logger.error(f"❌ Erro na população de trading coins: {e}")
 
         if self.request.retries < task_config.max_retries:
             logger.info(
-                f"Reagendando atualização de trading coins (tentativa {self.request.retries + 1})"
+                f"Reagendando população de trading coins (tentativa {self.request.retries + 1})"
             )
             raise self.retry(countdown=task_config.retry_countdown, exc=e)
 
         return {"status": "error", "error": str(e)}
+
+
+@celery_app.task(bind=True)
+def update_trading_coins_exchanges(self):
+    """
+    Task para atualizar exchanges das trading coins - executa semanalmente
+    """
+    try:
+        logger.info("Iniciando atualização de exchanges das trading coins")
+
+        # Executar atualização de exchanges
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        try:
+            from src.utils.trading_coins import trading_coins
+
+            coins = loop.run_until_complete(trading_coins.update_exchanges_data())
+
+            if coins >= 0:  # Pode ser 0 se não há moedas para atualizar
+                logger.info(f"Exchanges atualizadas para {coins} moedas")
+
+                return {
+                    "status": "success",
+                    "updated_coins": coins,
+                    "message": f"Exchanges atualizadas para {coins} moedas",
+                }
+            else:
+                logger.error("Falha ao atualizar exchanges")
+                return {"status": "error", "message": "Falha ao atualizar exchanges"}
+
+        finally:
+            loop.close()
+
+    except Exception as e:
+        logger.error(f"❌ Erro na atualização de exchanges: {e}")
+
+        if self.request.retries < task_config.max_retries:
+            logger.info(
+                f"Reagendando atualização de exchanges (tentativa {self.request.retries + 1})"
+            )
+            raise self.retry(countdown=task_config.retry_countdown, exc=e)
+
+        return {"status": "error", "error": str(e)}
+
+
 
 
 @celery_app.task(bind=True)
