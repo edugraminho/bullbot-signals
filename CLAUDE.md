@@ -39,19 +39,7 @@ docker-compose exec db psql -U postgres -d bullbot_signals
 # Celery monitoring
 docker-compose logs -f celery_worker
 docker-compose logs -f celery_beat
-```
 
-### Database Operations
-
-```bash
-# Run migrations
-docker-compose exec app alembic upgrade head
-
-# Create new migration
-docker-compose exec app alembic revision --autogenerate -m "Description"
-
-# Check migration status
-docker-compose exec app alembic current
 ```
 
 ## Architecture Overview
@@ -64,7 +52,7 @@ This is a **Clean Architecture** crypto trading signals application with strict 
 - Contains pure business logic with no external dependencies
 
 ### Adapters Layer (`src/adapters/`)
-- **External APIs**: Exchange clients (`binance_client.py`, `gate_client.py`, `mexc_client.py`)
+- **External APIs**: Exchange client (`mexc_client.py`)
 - Implements interfaces defined in core layer
 - Handles external system integration
 
@@ -81,19 +69,17 @@ This is a **Clean Architecture** crypto trading signals application with strict 
 ### Key Services
 
 1. **RSI Service** (`src/core/services/rsi_service.py`): Main business logic for RSI analysis
-2. **Exchange Clients**: Binance, Gate.io, and MEXC API integrations
+2. **Exchange Client**: MEXC API integration
 3. **Celery Tasks**: Background processing for monitoring and data collection
 4. **Trading Coins System**: Curated coin selection with automatic updates
 
 ## Exchange Integration
 
-The system supports three major exchanges:
+The system uses MEXC Exchange as the single data source:
 
-- **Binance**: Primary data source (highest liquidity, 1200 req/min limit)
-- **Gate.io**: Alternative data source  
-- **MEXC**: Spot market data source
+- **MEXC**: Spot market data source (20 req/sec, no spot trading fees)
 
-All exchanges use custom RSI calculation based on OHLCV data rather than direct RSI endpoints.
+The system uses custom RSI calculation based on OHLCV data rather than direct RSI endpoints.
 
 ## Configuration
 
@@ -139,10 +125,6 @@ All exchanges use custom RSI calculation based on OHLCV data rather than direct 
 3. Implement business logic in `src/core/services/`
 4. Add tests for new functionality
 
-### Database Changes
-1. Modify models in `src/database/models.py`
-2. Generate migration: `docker-compose exec app alembic revision --autogenerate -m "Description"`
-3. Apply migration: `docker-compose exec app alembic upgrade head`
 
 ## Resource Limits
 

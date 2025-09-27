@@ -42,7 +42,7 @@ class MEXCClient:
     async def get_ohlcv(
         self,
         symbol: str,
-        interval: str = "1d",
+        interval: str = "4h",
         limit: int = 50,
         from_timestamp: Optional[int] = None,
         to_timestamp: Optional[int] = None,
@@ -139,7 +139,7 @@ class MEXCClient:
     async def get_multiple_ohlcv(
         self,
         symbols: List[str],
-        interval: str = "1d",
+        interval: str = "4h",
         limit: int = 50,
     ) -> Dict[str, List[OHLCVData]]:
         """
@@ -168,7 +168,7 @@ class MEXCClient:
     async def get_latest_rsi(
         self,
         symbol: str,
-        interval: str = "1d",
+        interval: str = "4h",
         period: int = 14,
     ) -> Optional[RSIData]:
         """Busca OHLCV e calcula o RSI mais recente"""

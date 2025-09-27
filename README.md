@@ -1,6 +1,6 @@
 # BullBot Signals 🤖
 
-Sistema avançado de análise técnica para trading de criptomoedas baseado em **confluência de indicadores**. Combina RSI, EMAs, MACD e Volume para gerar sinais de alta precisão, com integração às APIs da [Binance](https://developers.binance.com/docs/binance-spot-api-docs/rest-api/market-data-endpoints#klinecandlestick-data), [Gate.io](https://www.gate.io/docs/apiv4/) e [MEXC](https://mexcdevelop.github.io/apidocs/spot_v3_en/).
+Sistema avançado de análise técnica para trading de criptomoedas baseado em **confluência de indicadores**. Combina RSI, EMAs, MACD e Volume para gerar sinais de alta precisão, com integração à API da [MEXC](https://mexcdevelop.github.io/apidocs/spot_v3_en/) Exchange.
 
 ## 📋 Índice
 
@@ -49,7 +49,7 @@ O BullBot Signals é uma aplicação de análise técnica avançada que utiliza 
   - **Volume**: OBV, VWAP e análise de fluxo para confirmação
 - **🎚️ Sistema de Pontuação Inteligente**: Filtragem por qualidade (4+ pontos = sinal válido)
 - **⚙️ Configuração Dinâmica**: Usuários podem personalizar via Telegram
-- **🔗 Multi-Exchange**: Binance (principal), Gate.io e MEXC com failover automático
+- **🔗 MEXC Exchange**: Integração com MEXC para dados de mercado spot sem taxas
 
 ### ✅ Infraestrutura Robusta
 
@@ -300,11 +300,11 @@ GET /api/v1/confluence/{symbol}
 **Parâmetros:**
 - `symbol`: Símbolo da criptomoeda (ex: BTC, ETH, SOL)
 - `interval`: Intervalo (15m, 1h, 4h, 1d)
-- `source`: Fonte dos dados (binance, gate ou mexc, padrão: binance)
+- `source`: Fonte dos dados (mexc)
 
 **Exemplo:**
 ```bash
-curl "http://localhost:8000/api/v1/confluence/BTC?interval=15m&source=binance"
+curl "http://localhost:8000/api/v1/confluence/BTC?interval=15m"
 ```
 
 **Resposta:**
@@ -478,13 +478,11 @@ O **BullBot Signals** funciona como **engine de análise** que alimenta os grupo
 📱 Grupos Telegram    🧮 Análise Confluência
 📊 Configurações     📊 Scores 0-8 pontos  
 ⚙️ Filtros           🎯 Sinais precisos
-👥 Usuários          📈 Multi-exchange
+👥 Usuários          📈 MEXC Exchange
 ```
 
 ## 📝 Rate Limits
 
-- **Binance**: 1200 requests/min (exchange principal recomendada)
-- **Gate.io**: Não especificado na documentação pública  
 - **MEXC**: 20 requests por segundo
 - **Recomendação**: Sistema gerencia rate limiting automaticamente
 
@@ -536,7 +534,7 @@ Cada grupo pode ter configurações personalizadas via **bullbot-telegram**:
 - **Thresholds**: Score mínimo por timeframe (15m: 4, 4h: 5)
 - **Filtros**: Cooldown personalizado por força do sinal
 - **Símbolos**: Lista customizada de criptomoedas
-- **Exchanges**: Preferência entre Binance, Gate.io, MEXC
+- **Exchange**: MEXC como fonte única de dados
 
 ### 🎛️ Controles Anti-Spam Avançados
 

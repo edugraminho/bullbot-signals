@@ -238,9 +238,8 @@ class TradingCoins:
 
     def get_supported_exchanges(self, coin_id: str) -> List[str]:
         """Determina em quais exchanges a moeda está disponível"""
-        # Por enquanto, assumir que todas estão nas 3 exchanges
-        # TODO: Implementar verificação real via APIs
-        return ["binance", "mexc", "gate"]
+        # Usando apenas MEXC
+        return ["mexc"]
 
     def save_to_csv(self, coins: List[CoinData]) -> None:
         """Salva lista em CSV"""
