@@ -2,14 +2,11 @@
 Serviço principal para operações com RSI usando MEXC Exchange
 """
 
-from typing import Dict, List, Optional
+from typing import List, Optional
 
-from src.adapters.mexc_client import MEXCClient, MEXCError
-from src.core.models.crypto import RSIData, RSILevels, OHLCVData
-from src.core.models.signals import SignalStrength
-from src.core.services.rsi_calculator import RSICalculator
+from src.core.models.crypto import OHLCVData, RSIData, RSILevels
 from src.core.services.confluence_analyzer import ConfluenceAnalyzer, ConfluenceResult
-from src.services.mexc_pairs_service import mexc_pairs_service
+from src.services.mexc_client import MEXCClient, MEXCError
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -70,80 +67,6 @@ class RSIService:
         except Exception as e:
             logger.error(f"❌ Erro inesperado ao buscar RSI MEXC para {symbol}: {e}")
             return None
-
-    def calculate_rsi_from_ohlcv(
-        self,
-        ohlcv_data: List[dict],
-        symbol: str,
-        interval: str = "4h",
-        window: int = 14,
-    ) -> Optional[RSIData]:
-        """
-        Calcula RSI a partir de dados OHLCV de qualquer fonte
-
-        Args:
-            ohlcv_data: Lista de dicionários com dados OHLCV
-            symbol: Símbolo da crypto
-            interval: Intervalo dos dados
-            window: Janela de cálculo RSI
-
-        Returns:
-            RSIData calculado ou None se não conseguir calcular
-        """
-        try:
-            rsi_data = RSICalculator.get_latest_rsi(
-                ohlcv_data, window, symbol, interval
-            )
-
-            if rsi_data:
-                logger.debug(f"RSI calculado para {symbol}: {rsi_data.value}")
-                return rsi_data
-            else:
-                logger.warning(f"Nenhum dado RSI calculado para {symbol}")
-                return None
-
-        except Exception as e:
-            logger.error(f"❌ Erro ao calcular RSI para {symbol}: {e}")
-            return None
-
-    async def get_multiple_rsi(
-        self, symbols: List[str], interval: str = "4h", window: int = 14
-    ) -> Dict[str, Optional[RSIData]]:
-        """Busca RSI para múltiplas cryptos em paralelo usando MEXC"""
-        try:
-            # Buscar RSI para cada símbolo
-            results = {}
-            async with MEXCClient() as client:
-                for symbol in symbols:
-                    try:
-                        rsi_data = await client.get_latest_rsi(symbol, interval, window)
-                        results[symbol] = rsi_data
-                    except MEXCError as e:
-                        logger.error(f"❌ Erro ao buscar RSI para {symbol}: {e}")
-                        results[symbol] = None
-
-            # Log resultados
-            successful = sum(1 for v in results.values() if v is not None)
-            logger.info(f"RSI calculado para {successful}/{len(symbols)} símbolos")
-
-            return results
-
-        except Exception as e:
-            logger.error(f"❌ Erro ao buscar RSI múltiplo: {e}")
-            return {symbol: None for symbol in symbols}
-
-    def get_curated_symbols(self, limit: int = 200) -> List[str]:
-        """
-        Retorna lista curada de símbolos para trading do banco MEXC
-        """
-        symbols = mexc_pairs_service.get_active_symbols("USDT")
-        return symbols[:limit] if limit else symbols
-
-    def get_symbols_by_exchange(self, exchange: str = "mexc") -> List[str]:
-        """
-        Retorna símbolos disponíveis na MEXC (única exchange suportada)
-        """
-        return mexc_pairs_service.get_active_symbols("USDT")
 
     async def analyze_rsi_with_confluence(
         self,
@@ -265,31 +188,3 @@ class RSIService:
             ConfluenceResult com análise completa ou None se não conseguir calcular
         """
         return await self.analyze_rsi_with_confluence(symbol, interval, window)
-
-    def should_notify(self, confluence_result: ConfluenceResult) -> bool:
-        """
-        Determina se um resultado de confluência deve gerar notificação
-
-        Args:
-            confluence_result: Resultado da análise de confluência
-
-        Returns:
-            True se deve notificar, False caso contrário
-        """
-        if not confluence_result.signal:
-            return False
-
-        # Sinais STRONG sempre notificam
-        if confluence_result.signal.strength == SignalStrength.STRONG:
-            return True
-
-        # Sinais MODERATE com score alto
-        if confluence_result.signal.strength == SignalStrength.MODERATE:
-            score_percentage = (
-                confluence_result.confluence_score.total_score
-                / confluence_result.confluence_score.max_possible_score
-            ) * 100
-            return score_percentage >= 70  # 70% ou mais
-
-        # WEAK não notifica
-        return False

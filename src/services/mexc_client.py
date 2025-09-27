@@ -10,7 +10,6 @@ import httpx
 
 from src.core.models.crypto import OHLCVData, RSIData
 from src.core.services.rsi_calculator import RSICalculator
-from src.utils.config import settings
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -135,35 +134,6 @@ class MEXCClient:
             error_msg = f"Erro ao buscar OHLCV para {symbol}: {e}"
             logger.error(error_msg)
             raise MEXCError(error_msg)
-
-    async def get_multiple_ohlcv(
-        self,
-        symbols: List[str],
-        interval: str = "4h",
-        limit: int = 50,
-    ) -> Dict[str, List[OHLCVData]]:
-        """
-        Busca dados OHLCV para múltiplos símbolos
-
-        Args:
-            symbols: Lista de símbolos
-            interval: Intervalo de tempo
-            limit: Quantidade de candles
-
-        Returns:
-            Dicionário com dados OHLCV por símbolo
-        """
-        results = {}
-
-        for symbol in symbols:
-            try:
-                ohlcv_data = await self.get_ohlcv(symbol, interval, limit)
-                results[symbol] = ohlcv_data
-            except MEXCError as e:
-                logger.error(f"❌ Erro ao buscar OHLCV para {symbol}: {e}")
-                results[symbol] = []
-
-        return results
 
     async def get_latest_rsi(
         self,

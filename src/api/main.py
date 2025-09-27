@@ -4,11 +4,12 @@ API principal do BullBot Signals
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from src.api.routes import rsi_routes
-from src.database.connection import create_tables
-from src.utils.logger import get_logger
 from src.api.routes.admin_routes import router as admin_router
 from src.api.routes.debug_routes import router as debug_router
+from src.database.connection import create_tables
+from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

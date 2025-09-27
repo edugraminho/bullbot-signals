@@ -3,20 +3,20 @@ Rotas administrativas do sistema
 """
 
 from datetime import datetime, timedelta, timezone
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from sqlalchemy import desc
+from sqlalchemy.orm import Session
 
 from src.api.schemas.admin import (
     SystemStatusResponse,
-    UserConfigResponse,
     UserConfigCreate,
+    UserConfigResponse,
     UserConfigUpdate,
 )
 from src.database.connection import get_db
-from src.database.models import UserMonitoringConfig, SignalHistory
+from src.database.models import SignalHistory, UserMonitoringConfig
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)

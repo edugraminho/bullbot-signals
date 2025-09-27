@@ -2,10 +2,10 @@
 Rotas de debug e verificação do sistema
 """
 
-from datetime import datetime, timezone
 import os
-import redis
+from datetime import datetime, timezone
 
+import redis
 from fastapi import APIRouter, HTTPException
 
 from src.api.schemas.admin import CeleryStatusResponse

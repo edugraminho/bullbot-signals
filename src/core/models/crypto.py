@@ -4,17 +4,8 @@ Modelos de dados para criptomoedas e indicadores
 
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel, Field
-
-
-class Cryptocurrency(BaseModel):
-    """Modelo para criptomoeda"""
-
-    symbol: str = Field(..., description="Symbol like BTC, ETH")
-    name: Optional[str] = Field(None, description="Full name like Bitcoin")
-    exchange: Optional[str] = Field(None, description="Exchange name")
 
 
 class RSIData(BaseModel):
@@ -91,16 +82,3 @@ class VolumeData(BaseModel):
     source: str = Field("calculated", description="Data source")
 
 
-class BollingerData(BaseModel):
-    """Modelo para dados de Bollinger Bands"""
-
-    symbol: str = Field(..., description="Crypto symbol")
-    timestamp: datetime = Field(..., description="Data timestamp")
-    upper_band: Decimal = Field(..., description="Upper Bollinger Band")
-    middle_band: Decimal = Field(..., description="Middle Band (SMA)")
-    lower_band: Decimal = Field(..., description="Lower Bollinger Band")
-    current_price: Decimal = Field(..., description="Current price of the asset")
-    price_position: str = Field(..., description="above_upper, below_lower, normal")
-    bandwidth: Decimal = Field(..., description="Band width (upper - lower)")
-    timespan: str = Field(..., description="Timeframe: 15m, 1h, 4h, 1d")
-    source: str = Field("calculated", description="Data source")

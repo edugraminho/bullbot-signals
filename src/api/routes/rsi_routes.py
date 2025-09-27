@@ -5,9 +5,9 @@ Endpoints para operações com RSI
 from fastapi import APIRouter, HTTPException, Query
 
 from src.api.schemas.rsi import (
-    RSIResponse,
-    MultipleRSIResponse,
     HealthResponse,
+    MultipleRSIResponse,
+    RSIResponse,
 )
 from src.core.services.rsi_service import RSIService
 from src.utils.config import settings

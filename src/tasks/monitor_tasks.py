@@ -4,17 +4,16 @@ Tasks principais de monitoramento RSI
 
 import asyncio
 import time
-from datetime import datetime, timedelta, timezone
 from typing import List
 
 from src.core.services.rsi_service import RSIService
 from src.core.services.signal_filter import signal_filter
 from src.database.connection import SessionLocal
-from src.database.models import UserMonitoringConfig, SignalHistory
+from src.database.models import SignalHistory, UserMonitoringConfig
+from src.services.mexc_pairs_service import mexc_pairs_service
 from src.tasks.celery_app import celery_app
 from src.utils.config import settings
 from src.utils.logger import get_logger
-from src.utils.trading_coins import trading_coins
 
 logger = get_logger(__name__, level="INFO")
 
@@ -26,8 +25,6 @@ class MonitorTaskConfig:
         self.rsi_window = settings.rsi_calculation_window
         self.max_retries = settings.task_max_retry_attempts
         self.retry_countdown = settings.task_retry_delay_seconds
-        self.cleanup_days = settings.signal_history_retention_days
-        self.default_symbols = settings.default_crypto_symbols
 
 
 # Instância global de configuração
@@ -35,43 +32,46 @@ task_config = MonitorTaskConfig()
 
 
 @celery_app.task(bind=True)
-def update_trading_coins(self):
+def sync_mexc_pairs(self):
     """
-    Task para atualizar lista de trading coins - executa a cada 7 dias
+    Task para sincronizar pares de trading da MEXC - executa a cada 5 minutos
     """
     try:
-        logger.info("Iniciando atualização da lista de trading coins")
+        logger.info("🔄 Iniciando sincronização de pares MEXC...")
 
-        # Executar atualização
+        # Executar sincronização
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         try:
-            coins = loop.run_until_complete(trading_coins.update_trading_list())
+            result = loop.run_until_complete(mexc_pairs_service.sync_all_pairs())
 
-            if coins:
+            if result.get("errors", 0) == 0:
                 logger.info(
-                    f"Lista de trading coins atualizada com {len(coins)} moedas"
+                    f"✅ Sincronização MEXC concluída: {result['inserted']} inseridos, "
+                    f"{result['updated']} atualizados, {result['total']} total"
                 )
 
                 return {
                     "status": "success",
-                    "total_coins": len(coins),
-                    "message": f"Lista atualizada com {len(coins)} moedas",
+                    "inserted": result['inserted'],
+                    "updated": result['updated'],
+                    "total": result['total'],
+                    "message": f"MEXC sincronizada: {result['total']} pares",
                 }
             else:
-                logger.error("Falha ao atualizar lista de trading coins")
-                return {"status": "error", "message": "Falha ao atualizar lista"}
+                logger.error("❌ Falha na sincronização MEXC")
+                return {"status": "error", "message": "Falha na sincronização MEXC"}
 
         finally:
             loop.close()
 
     except Exception as e:
-        logger.error(f"❌ Erro na atualização de trading coins: {e}")
+        logger.error(f"❌ Erro na sincronização MEXC: {e}")
 
         if self.request.retries < task_config.max_retries:
             logger.info(
-                f"Reagendando atualização de trading coins (tentativa {self.request.retries + 1})"
+                f"Reagendando sincronização MEXC (tentativa {self.request.retries + 1})"
             )
             raise self.retry(countdown=task_config.retry_countdown, exc=e)
 
@@ -79,10 +79,10 @@ def update_trading_coins(self):
 
 
 @celery_app.task(bind=True)
-def monitor_rsi_signals(self):
+def monitor_rsi_signals(_self):
     """
-    Task principal de monitoramento - executa sequencialmente
-    Agenda próxima execução 1 minuto após término
+    Task principal de monitoramento - executa sequencialmente usando MEXC
+    Agendamento controlado pelo celery beat
     """
     cycle_start_time = time.time()
 
@@ -95,8 +95,6 @@ def monitor_rsi_signals(self):
         symbols = get_active_symbols()
         if not symbols:
             logger.warning("Nenhum símbolo configurado para monitoramento")
-            # Agendar próxima execução mesmo sem símbolos
-            self.apply_async(countdown=60)
             return {"status": "no_symbols"}
 
         # Distribuir símbolos por exchange para rate limiting
@@ -114,8 +112,6 @@ def monitor_rsi_signals(self):
 
         if not exchanges_with_symbols:
             logger.warning("Nenhuma exchange com símbolos para processar")
-            # Agendar próxima execução mesmo sem exchanges
-            self.apply_async(countdown=60)
             return {"status": "no_exchanges"}
 
         # Criar lista de tasks para executar
@@ -130,7 +126,7 @@ def monitor_rsi_signals(self):
             cycle_start_time=cycle_start_time,
             total_symbols=len(symbols),
             total_exchanges=len(exchanges_with_symbols),
-        ).set(link=schedule_next_monitoring.s())
+        )
 
         chord(tasks_list, callback).apply_async()
 
@@ -154,8 +150,6 @@ def monitor_rsi_signals(self):
         logger.error(
             f"❌ Erro no monitoramento sequencial: {e} (ciclo: {cycle_duration:.2f}s)"
         )
-        # Agendar próxima execução mesmo em caso de erro
-        self.apply_async(countdown=60)
         return {"status": "error", "error": str(e)}
 
 
@@ -165,7 +159,7 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
     Processar batch de símbolos para uma exchange específica
 
     Args:
-        exchange: Nome da exchange (binance, gate, mexc)
+        exchange: Nome da exchange (mexc)
         symbols: Lista de símbolos para processar
     """
     batch_start_time = time.time()
@@ -323,16 +317,13 @@ def process_single_symbol(
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-        # Usar análise de confluência em vez de RSI puro
+        # Usar análise de confluência com MEXC
         confluence_result = loop.run_until_complete(
-            rsi_service.analyze_signal(symbol, rsi_timeframe, rsi_window, exchange)
+            rsi_service.analyze_signal(symbol, rsi_timeframe, rsi_window)
         )
 
         if not confluence_result:
-            # Moeda não encontrada - remover exchange da lista
-            from src.utils.trading_coins import trading_coins
-
-            trading_coins.remove_exchange_from_coin(symbol, exchange)
+            # Moeda não encontrada ou sem dados
             return {"status": "no_data", "symbol": symbol, "exchange": exchange}
 
         # O analyze_signal já retorna ConfluenceResult com sinal (se houver)
@@ -484,14 +475,7 @@ def get_active_symbols() -> List[str]:
         if not active_configs:
             logger.warning("⚠️ Nenhuma configuração de usuário ativa encontrada")
             db.close()
-            # Fallback para lista padrão apenas se não há configurações
-            fallback_symbols = trading_coins.get_trading_symbols(
-                limit=settings.trading_coins_max_limit
-            )
-            logger.info(
-                f"Usando {len(fallback_symbols)} símbolos do fallback (trading coins)"
-            )
-            return fallback_symbols
+            return []
 
         # Agregar símbolos únicos de todas as configurações ativas
         all_symbols = set()
@@ -586,76 +570,26 @@ def get_active_monitoring_configs() -> List[UserMonitoringConfig]:
 
 def distribute_symbols_by_exchange(symbols: List[str]) -> dict:
     """
-    Distribuir símbolos entre as exchanges baseado na disponibilidade no CSV
-
+    Distribuir símbolos para MEXC (única exchange)
     Args:
         symbols: Lista de todos os símbolos
-
     Returns:
-        Dict com exchange -> lista de símbolos
+        Dict com exchange -> lista de símbolos válidos
     """
-    # Carregar dados do CSV para verificar exchanges disponíveis
-    coins = trading_coins.load_from_csv()
-    coin_exchanges = {coin.symbol: coin.exchanges for coin in coins}
+    # Validar símbolos contra database MEXC
+    valid_symbols = []
+    mexc_symbols = set(mexc_pairs_service.get_active_symbols("USDT"))
 
-    # Inicializar listas por exchange
-    exchange_symbols = {"binance": [], "gate": [], "mexc": []}
-
-    # Distribuir símbolos baseado nas exchanges disponíveis
     for symbol in symbols:
-        available_exchanges = coin_exchanges.get(symbol, [])
+        if symbol.upper() in mexc_symbols:
+            valid_symbols.append(symbol.upper())
+        else:
+            logger.warning(f"Símbolo {symbol} não encontrado na MEXC ou não é USDT")
 
-        if not available_exchanges:
-            # Se não há exchanges, pular
-            continue
-
-        # Distribuir para a primeira exchange disponível
-        for exchange in ["binance", "gate", "mexc"]:
-            if exchange in available_exchanges:
-                exchange_symbols[exchange].append(symbol)
-                break
-
-    return exchange_symbols
+    logger.info(f"Símbolos válidos: {len(valid_symbols)}/{len(symbols)}")
+    return {"mexc": valid_symbols}
 
 
-@celery_app.task
-def cleanup_old_signals():
-    """Task diária para limpeza de dados antigos"""
-    cleanup_start_time = time.time()
-
-    try:
-        db = SessionLocal()
-
-        # Remover sinais antigos baseado na configuração
-        cutoff_date = datetime.now(timezone.utc) - timedelta(
-            days=task_config.cleanup_days
-        )
-
-        deleted_count = (
-            db.query(SignalHistory)
-            .filter(SignalHistory.created_at < cutoff_date)
-            .delete()
-        )
-
-        db.commit()
-        db.close()
-
-        cleanup_duration = time.time() - cleanup_start_time
-        logger.info(
-            f"🧹 Limpeza concluída: {deleted_count} registros removidos ({cleanup_duration:.2f}s)"
-        )
-
-        return {
-            "status": "completed",
-            "deleted_count": deleted_count,
-            "cutoff_date": cutoff_date.isoformat(),
-            "duration": cleanup_duration,
-        }
-
-    except Exception as e:
-        cleanup_duration = time.time() - cleanup_start_time
-        logger.error(f"❌ Erro na limpeza: {e} (duração: {cleanup_duration:.2f}s)")
-        return {"status": "error", "error": str(e)}
 
 
 @celery_app.task
@@ -704,13 +638,7 @@ def finalize_monitoring_cycle(
 
 
 @celery_app.task
-def schedule_next_monitoring(*args):
-    """Task para agendar próxima execução do monitoramento"""
-    try:
-        # Agendar próxima execução em 1 minuto
-        monitor_rsi_signals.apply_async(countdown=60)
-        logger.info("Próxima execução agendada em 1 minuto")
-        return {"status": "next_scheduled", "delay_seconds": 60}
-    except Exception as e:
-        logger.error(f"❌ Erro ao agendar próxima execução: {e}")
-        return {"status": "error", "error": str(e)}
+def schedule_next_monitoring(*_args):
+    """Agenda próxima execução do monitoramento"""
+    # Usar auto-scheduling do celery beat em vez de self-scheduling
+    pass

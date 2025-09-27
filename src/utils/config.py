@@ -80,8 +80,7 @@ class Settings(BaseSettings):
         2.0  # Diferença mínima de RSI para novo sinal
     )
 
-    # Configurações de Limpeza e Retry
-    signal_history_retention_days: int = 30  # Dias para manter histórico de sinais
+    # Configurações de Retry
     task_max_retry_attempts: int = 2  # Máximo de tentativas em caso de falha
     task_retry_delay_seconds: int = 60  # Tempo entre tentativas
 
@@ -100,9 +99,7 @@ class Settings(BaseSettings):
 
     # Intervalos e Frequências
     mexc_sync_interval_seconds: int = 300  # Sincronização MEXC a cada 5 minutos
-    database_cleanup_interval_seconds: int = (
-        86400  # Intervalo para limpeza do banco (24h)
-    )
+    signal_monitoring_interval_seconds: int = 300  # Monitoramento de sinais a cada 5 minutos
 
     # Configurações de Timezone
     celery_timezone: str = "UTC"

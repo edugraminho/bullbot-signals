@@ -4,12 +4,14 @@ Sistema de filtros para sinais - Anti-spam e cooldown
 
 import os
 import time
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, List
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 import redis
+
 from src.core.models.signals import SignalStrength, SignalType
-from src.utils.logger import get_logger
 from src.utils.config import settings
+from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 

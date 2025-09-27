@@ -3,7 +3,8 @@ Schemas/DTOs para endpoints de RSI
 (Modelos de serialização da API, não de domínio)
 """
 
-from typing import List, Optional, Dict
+from typing import Dict, Optional
+
 from pydantic import BaseModel
 
 

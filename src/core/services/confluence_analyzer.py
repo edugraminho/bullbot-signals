@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional
 
 from src.core.models.crypto import RSIData
-from src.core.models.signals import SignalType, SignalStrength, TradingSignal
+from src.core.models.signals import SignalStrength, SignalType, TradingSignal
 from src.core.services.ema_calculator import EMACalculator
 from src.core.services.macd_calculator import MACDCalculator
 from src.core.services.volume_analyzer import VolumeAnalyzer
@@ -420,7 +420,7 @@ class ConfluenceAnalyzer:
             return "ALTO"
 
     def _create_neutral_result(
-        self, rsi_data: RSIData, symbol: str, timespan: str
+        self, rsi_data: RSIData, symbol: str = "", timespan: str = ""
     ) -> ConfluenceResult:
         """Cria resultado neutro quando RSI está em zona neutra"""
         confluence_score = ConfluenceScore(
@@ -440,7 +440,7 @@ class ConfluenceAnalyzer:
         )
 
     def _create_error_result(
-        self, rsi_data: RSIData, symbol: str, timespan: str
+        self, rsi_data: RSIData, symbol: str = "", timespan: str = ""
     ) -> ConfluenceResult:
         """Cria resultado de erro"""
         confluence_score = ConfluenceScore(

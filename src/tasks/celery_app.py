@@ -2,9 +2,11 @@
 Configuração principal do Celery
 """
 
-import os
 import logging
+import os
+
 from celery import Celery
+
 from src.utils.config import settings
 
 # Configurar Celery
@@ -38,11 +40,15 @@ celery_app.conf.update(
     task_time_limit=settings.celery_task_force_kill_timeout,
     # Configurações de Memória para ambientes com poucos recursos
     worker_max_memory_per_child=settings.celery_max_memory_per_child,
-    # Beat schedule para sincronização MEXC apenas
+    # Beat schedule para sincronização MEXC e monitoramento RSI
     beat_schedule={
         "sync-mexc-pairs": {
             "task": "src.tasks.monitor_tasks.sync_mexc_pairs",
-            "schedule": float(settings.mexc_sync_interval_seconds),
+            "schedule": float(settings.mexc_sync_interval_seconds),  # 5 minutos
+        },
+        "monitor-rsi-signals": {
+            "task": "src.tasks.monitor_tasks.monitor_rsi_signals",
+            "schedule": float(settings.signal_monitoring_interval_seconds),  # 5 minutos
         },
     },
 )

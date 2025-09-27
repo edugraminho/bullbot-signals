@@ -5,13 +5,13 @@ Models do banco de dados
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    JSON,
     BigInteger,
     Boolean,
     Column,
     DateTime,
     Float,
     Integer,
-    JSON,
     String,
     Text,
     UniqueConstraint,
