@@ -46,22 +46,26 @@ Para configurar o sistema para monitorar **todas as moedas** automaticamente, ex
 ```sql
 -- Inserir configuração global para monitorar todas as trading coins
 INSERT INTO user_monitoring_configs (
-    user_id, 
-    chat_id, 
+    user_id,
+    chat_id,
     chat_type,
-    config_name, 
+    config_type,
+    priority,
+    config_name,
     description,
-    symbols, 
+    symbols,
     timeframes,
     indicators_config,
     active,
     created_at,
     updated_at
-) 
-SELECT 
+)
+SELECT
     999999 as user_id,
     'GLOBAL_MONITORING' as chat_id,
     'system' as chat_type,
+    'global' as config_type,
+    1 as priority,
     'global_all_trading_coins' as config_name,
     'Config automática para monitorar todas as trading coins em 15m' as description,
     array_agg(DISTINCT symbol ORDER BY symbol) as symbols,
@@ -98,7 +102,7 @@ SELECT
     true as active,
     NOW() as created_at,
     NOW() as updated_at
-FROM trading_coins 
+FROM trading_coins
 WHERE active = true;
 ```
 
@@ -111,11 +115,12 @@ WHERE active = true;
 
 **Como executar:**
 ```bash
-# Via Docker
-docker-compose exec db psql -U postgres -d bullbot_signals -c "INSERT INTO..."
+# Via Docker (usuário correto do banco)
+docker compose exec db psql -U bullbot_user -d bullbot_signals -c "INSERT INTO..."
 
 # Via pgAdmin ou outro cliente SQL
 # Cole a query diretamente no editor
+# Certifique-se de usar as credenciais: bullbot_user/bullbot_password_2025
 ```
 
 ## ✨ Funcionalidades

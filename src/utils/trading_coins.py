@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 import aiohttp
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 from sqlalchemy.orm import Session
 
 from src.database.connection import get_db
@@ -93,15 +93,19 @@ class TradingCoins:
             all_coins = []
             page = 1
             per_page = 250  # Máximo por página da API
-            
-            logger.info(f"🚀 Buscando {limit} moedas (todas as categorias) ordenadas por market cap...")
+
+            logger.info(
+                f"🚀 Buscando {limit} moedas (todas as categorias) ordenadas por market cap..."
+            )
 
             while len(all_coins) < limit:
                 params = {
                     "vs_currency": "usd",
                     # REMOVIDO: "category" para buscar TODAS as categorias
                     "order": "market_cap_desc",  # Garantir ordem por market cap
-                    "per_page": min(per_page, limit - len(all_coins)),  # Não buscar mais que necessário
+                    "per_page": min(
+                        per_page, limit - len(all_coins)
+                    ),  # Não buscar mais que necessário
                     "page": page,
                     "sparkline": "false",
                     "price_change_percentage": "24h",
@@ -112,20 +116,26 @@ class TradingCoins:
                         if response.status == 200:
                             data = await response.json()
                             if not data:  # Acabaram as moedas disponíveis
-                                logger.info(f"⚠️ API retornou {len(all_coins)} moedas (menos que o limite de {limit})")
+                                logger.info(
+                                    f"⚠️ API retornou {len(all_coins)} moedas (menos que o limite de {limit})"
+                                )
                                 break
-                            
+
                             all_coins.extend(data)
-                            logger.info(f"Página {page}: +{len(data)} moedas (total: {len(all_coins)}/{limit})")
+                            logger.info(
+                                f"Página {page}: +{len(data)} moedas (total: {len(all_coins)}/{limit})"
+                            )
                             page += 1
 
                             # Rate limiting apenas se precisar buscar mais
                             if len(all_coins) < limit:
                                 await asyncio.sleep(self.rate_limit_delay)
-                                
+
                         elif response.status == 429:
                             logger.warning("Rate limit atingido, aguardando...")
-                            await asyncio.sleep(self.rate_limit_delay * 3)  # Aguardar mais tempo
+                            await asyncio.sleep(
+                                self.rate_limit_delay * 3
+                            )  # Aguardar mais tempo
                         else:
                             logger.error(f"❌ Erro na API CoinGecko: {response.status}")
                             break
@@ -138,8 +148,6 @@ class TradingCoins:
         except Exception as e:
             logger.error(f"❌ Erro ao buscar dados: {e}")
             return []
-
-
 
     def save_to_database(self, coins_data: List[Dict]) -> int:
         """Salva lista completa de moedas no banco de dados (com exchanges)"""
@@ -162,15 +170,11 @@ class TradingCoins:
                             setattr(existing_coin, key, value)
                     existing_coin.active = True
                     existing_coin.updated_at = datetime.now(timezone.utc)
-                    existing_coin.last_market_update = datetime.now(timezone.utc)
-                    existing_coin.exchanges_last_updated = datetime.now(timezone.utc)
                     existing_coin.ranking = coin_data["ranking"]
                 else:
                     # Criar nova moeda
                     new_coin = TradingCoin(**coin_data)
                     new_coin.active = True
-                    new_coin.last_market_update = datetime.now(timezone.utc)
-                    new_coin.exchanges_last_updated = datetime.now(timezone.utc)
                     db.add(new_coin)
 
                 saved_count += 1
@@ -234,7 +238,9 @@ class TradingCoins:
         total_coins = len(coins_data)
         blacklist_removed = 0
 
-        logger.info(f"Iniciando processamento de {total_coins} moedas (todas as categorias)...")
+        logger.info(
+            f"Iniciando processamento de {total_coins} moedas (todas as categorias)..."
+        )
         logger.info("Aplicando filtros: blacklist de símbolos + market cap > $0")
 
         for coin in coins_data:
@@ -255,7 +261,7 @@ class TradingCoins:
             # Preparar dados para salvar (tratando valores null)
             volume_24h = coin.get("total_volume") or 0
             current_price = coin.get("current_price") or 0  # Não pode ser null
-            
+
             coin_data = {
                 "ranking": len(filtered_coins) + 1,
                 "coingecko_id": coin["id"],
@@ -265,10 +271,8 @@ class TradingCoins:
                 "market_cap_rank": coin.get("market_cap_rank"),
                 "volume_24h": volume_24h,
                 "current_price": current_price,
-                "price_change_24h": coin.get("price_change_24h"),
-                "price_change_percentage_24h": coin.get("price_change_percentage_24h"),
                 "category": "mixed",  # Moedas de várias categorias
-                "image_url": coin.get("image"),
+                "exchanges": None,  # Será populado depois via update_exchanges_data
             }
 
             filtered_coins.append(coin_data)
@@ -276,7 +280,9 @@ class TradingCoins:
         logger.info("Processamento concluído (filtros aplicados):")
         logger.info(f"  - Total inicial: {total_coins}")
         logger.info(f"  - Moedas da blacklist removidas: {blacklist_removed}")
-        logger.info(f"  - Moedas sem market cap removidas: {total_coins - len(filtered_coins) - blacklist_removed}")
+        logger.info(
+            f"  - Moedas sem market cap removidas: {total_coins - len(filtered_coins) - blacklist_removed}"
+        )
         logger.info(f"  - Moedas aceitas: {len(filtered_coins)}")
         logger.info("  - Buscando de TODAS as categorias (não só layer-1)")
 
@@ -306,8 +312,7 @@ class TradingCoins:
                 self.update_coin_exchanges(coin.coingecko_id, exchanges)
                 updated_count += 1
             else:
-                # Falha definitiva - não atualizar exchanges_last_updated
-                # Moeda será tentada novamente no próximo ciclo
+                # Falha definitiva - moeda será tentada novamente no próximo ciclo
                 logger.warning(
                     f"⚠️ Pulando atualização de exchanges para {coin.symbol} devido a falhas na API"
                 )
@@ -317,7 +322,6 @@ class TradingCoins:
 
         logger.info(f"Exchanges atualizadas para {updated_count} moedas")
         return updated_count
-
 
     def get_trading_symbols(self, limit: int = None) -> List[str]:
         """Retorna lista de símbolos para trading"""
@@ -366,22 +370,13 @@ class TradingCoins:
                 # Forçar atualização de todas as moedas ativas
                 coins = db.query(TradingCoin).filter(TradingCoin.active == True).all()  # noqa
             else:
-                # Buscar moedas que nunca tiveram exchanges atualizadas ou são muito antigas
-                from datetime import timedelta
-
-                cutoff_date = datetime.now(timezone.utc) - timedelta(
-                    days=settings.trading_coins_exchanges_update_days
-                )
-
+                # Buscar moedas que nunca tiveram exchanges atualizadas
                 coins = (
                     db.query(TradingCoin)
                     .filter(
                         and_(
                             TradingCoin.active == True,  # noqa
-                            or_(
-                                TradingCoin.exchanges_last_updated.is_(None),
-                                TradingCoin.exchanges_last_updated < cutoff_date,
-                            ),
+                            TradingCoin.exchanges.is_(None),
                         )
                     )
                     .all()
@@ -406,7 +401,6 @@ class TradingCoins:
 
             if coin:
                 coin.exchanges = exchanges
-                coin.exchanges_last_updated = datetime.now(timezone.utc)
                 coin.updated_at = datetime.now(timezone.utc)
                 db.commit()
                 logger.debug(f"Exchanges atualizadas para {coin.symbol}: {exchanges}")

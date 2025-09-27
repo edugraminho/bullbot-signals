@@ -7,10 +7,10 @@ from typing import Dict, List, Optional
 from src.adapters.binance_client import BinanceClient, BinanceError
 from src.adapters.gate_client import GateClient, GateError
 from src.adapters.mexc_client import MEXCClient, MEXCError
-from src.core.models.crypto import RSIData, RSILevels, OHLCVData
+from src.core.models.crypto import OHLCVData, RSIData, RSILevels
 from src.core.models.signals import SignalStrength
-from src.core.services.rsi_calculator import RSICalculator
 from src.core.services.confluence_analyzer import ConfluenceAnalyzer, ConfluenceResult
+from src.core.services.rsi_calculator import RSICalculator
 from src.utils.logger import get_logger
 from src.utils.trading_coins import trading_coins
 
@@ -303,6 +303,20 @@ class RSIService:
                 logger.error(f"❌ Exchange não suportada: {source}")
                 return None
 
+        except BinanceError as e:
+            # Verificar se é erro 400 (símbolo não encontrado)
+            if "400 Bad Request" in str(e):
+                logger.warning(f"⚠️ Moeda {symbol} não existe na {source}. Desativando...")
+                self._deactivate_trading_coin(symbol, source)
+            logger.error(f"❌ Erro ao obter dados OHLCV de {source} para {symbol}: {e}")
+            return None
+        except (GateError, MEXCError) as e:
+            # Verificar se é erro de símbolo não encontrado em outras exchanges
+            if any(indicator in str(e).lower() for indicator in ["not found", "invalid symbol", "400", "404"]):
+                logger.warning(f"⚠️ Moeda {symbol} não existe na {source}. Desativando...")
+                self._deactivate_trading_coin(symbol, source)
+            logger.error(f"❌ Erro ao obter dados OHLCV de {source} para {symbol}: {e}")
+            return None
         except Exception as e:
             logger.error(f"❌ Erro ao obter dados OHLCV de {source} para {symbol}: {e}")
             return None
@@ -332,6 +346,74 @@ class RSIService:
                 }
             )
         return dict_data
+
+    def _deactivate_trading_coin(self, symbol: str, source: str) -> bool:
+        """
+        Desativa uma moeda que não existe na exchange especificada
+
+        Args:
+            symbol: Símbolo da moeda (ex: CFG, MIN)
+            source: Exchange onde a moeda não foi encontrada
+
+        Returns:
+            True se conseguiu desativar, False caso contrário
+        """
+        try:
+            # Verificar se a moeda existe no banco
+            coin = trading_coins.get_coin_by_symbol(symbol)
+            if not coin:
+                logger.warning(f"⚠️ Moeda {symbol} não encontrada no banco")
+                return False
+
+            # Desativar a moeda diretamente quando ela não existe na exchange
+            logger.info(f"🔴 Desativando moeda {symbol} (não existe na {source})")
+            return self._deactivate_coin_completely(symbol)
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao desativar moeda {symbol}: {e}")
+            return False
+
+    def _deactivate_coin_completely(self, symbol: str) -> bool:
+        """
+        Desativa uma moeda completamente no banco de dados
+
+        Args:
+            symbol: Símbolo da moeda para desativar
+
+        Returns:
+            True se conseguiu desativar, False caso contrário
+        """
+        try:
+            from datetime import datetime, timezone
+
+            from src.database.connection import get_db
+            from src.database.models import TradingCoin
+
+            db = next(get_db())
+
+            coin = db.query(TradingCoin).filter(
+                TradingCoin.symbol == symbol.upper(),
+                TradingCoin.active.is_(True)
+            ).first()
+
+            if coin:
+                coin.active = False
+                coin.updated_at = datetime.now(timezone.utc)
+                db.commit()
+                logger.info(f"🔴 Moeda {symbol} desativada no banco de dados")
+                return True
+            else:
+                logger.warning(f"⚠️ Moeda {symbol} não encontrada no banco para desativar")
+                return False
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao desativar moeda {symbol} no banco: {e}")
+            if 'db' in locals():
+                db.rollback()
+            return False
+        finally:
+            if 'db' in locals():
+                db.close()
 
     async def analyze_signal(
         self,

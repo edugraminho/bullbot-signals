@@ -198,12 +198,8 @@ class TradingCoin(Base):
     market_cap_rank = Column(Integer, nullable=True)
     volume_24h = Column(Float, nullable=False)
     current_price = Column(Float, nullable=False)
-    price_change_24h = Column(Float, nullable=True)
-    price_change_percentage_24h = Column(Float, nullable=True)
-
     # Metadados
     category = Column(String(50), nullable=True, index=True)
-    image_url = Column(String(500), nullable=True)
 
     # Exchanges onde está disponível (JSON array)
     exchanges = Column(JSON, nullable=True)  # ["binance", "mexc", "gate"]
@@ -219,8 +215,6 @@ class TradingCoin(Base):
         default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
-    last_market_update = Column(DateTime, nullable=True)
-    exchanges_last_updated = Column(DateTime, nullable=True)
 
     def to_dict(self) -> dict:
         """Converte o modelo para dicionário"""
@@ -233,19 +227,10 @@ class TradingCoin(Base):
             "market_cap_rank": self.market_cap_rank,
             "volume_24h": self.volume_24h,
             "current_price": self.current_price,
-            "price_change_24h": self.price_change_24h,
-            "price_change_percentage_24h": self.price_change_percentage_24h,
             "category": self.category,
-            "image_url": self.image_url,
             "exchanges": self.exchanges,
             "ranking": self.ranking,
             "active": self.active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
-            "last_market_update": self.last_market_update.isoformat()
-            if self.last_market_update
-            else None,
-            "exchanges_last_updated": self.exchanges_last_updated.isoformat()
-            if self.exchanges_last_updated
-            else None,
         }

@@ -63,10 +63,7 @@ async def test_populate_sample_coins():
             "market_cap_rank": 1,
             "volume_24h": 30000000000,
             "current_price": 100000,
-            "price_change_24h": 1000,
-            "price_change_percentage_24h": 1.0,
-            "category": settings.trading_coins_category,
-            "image_url": "https://assets.coingecko.com/coins/images/1/large/bitcoin.png"
+            "category": "mixed"
         },
         {
             "ranking": 2,
@@ -77,10 +74,7 @@ async def test_populate_sample_coins():
             "market_cap_rank": 2,
             "volume_24h": 20000000000,
             "current_price": 4000,
-            "price_change_24h": 100,
-            "price_change_percentage_24h": 2.5,
-            "category": settings.trading_coins_category,
-            "image_url": "https://assets.coingecko.com/coins/images/279/large/ethereum.png"
+            "category": "mixed"
         },
         {
             "ranking": 3,
@@ -91,10 +85,7 @@ async def test_populate_sample_coins():
             "market_cap_rank": 5,
             "volume_24h": 5000000000,
             "current_price": 200,
-            "price_change_24h": 10,
-            "price_change_percentage_24h": 5.0,
-            "category": settings.trading_coins_category,
-            "image_url": "https://assets.coingecko.com/coins/images/4128/large/solana.png"
+            "category": "mixed"
         }
     ]
     

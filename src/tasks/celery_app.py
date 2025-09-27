@@ -48,10 +48,16 @@ celery_app.conf.update(
         #     "task": "src.tasks.monitor_tasks.cleanup_old_signals",
         #     "schedule": float(settings.database_cleanup_interval_seconds),
         # },
-        "update-trading-coins": {
-            "task": "src.tasks.monitor_tasks.update_trading_coins",
+        "populate-trading-coins": {
+            "task": "src.tasks.monitor_tasks.populate_trading_coins_from_coingecko",
             "schedule": float(
                 settings.trading_coins_update_interval_days * 24 * 60 * 60
+            ),
+        },
+        "update-trading-coins-exchanges": {
+            "task": "src.tasks.monitor_tasks.update_trading_coins_exchanges",
+            "schedule": float(
+                7 * 24 * 60 * 60  # Semanalmente
             ),
         },
     },

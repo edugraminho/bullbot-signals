@@ -145,16 +145,18 @@ class Settings(BaseSettings):
     coingecko_ohlc_default_days: str = "1"  # Período padrão para dados OHLC
     coingecko_max_retries: int = 3  # Máximo de tentativas em caso de rate limit
     coingecko_retry_backoff_base: int = 10  # Base para backoff exponencial (segundos)
-    
+
     # Configurações de Filtro de Trading Coins
-    trading_coins_category: str = "layer-1"  # Categoria de moedas para buscar da CoinGecko
-    
+    trading_coins_category: str = (
+        "layer-1"  # Categoria de moedas para buscar da CoinGecko
+    )
+
     # Categorias de moedas EXCLUÍDAS (não queremos essas)
     trading_coins_category_blacklist: List[str] = [
-        "stablecoins",           # Stablecoins
-        "meme-token",           # Meme coins
-        "fan-token",            # Fan tokens
-        "wrapped-tokens",       # Wrapped tokens
+        "stablecoins",  # Stablecoins
+        "meme-token",  # Meme coins
+        "fan-token",  # Fan tokens
+        "wrapped-tokens",  # Wrapped tokens
         "centralized-exchange-token",  # Exchange tokens
     ]
 
