@@ -80,77 +80,6 @@ class Settings(BaseSettings):
         2.0  # Diferença mínima de RSI para novo sinal
     )
 
-    # Símbolos padrão para monitoramento
-    default_crypto_symbols: List[str] = [
-        "BTC",
-        "ETH",
-        "SOL",
-        "AAVE",
-        "AERO",
-        "AGI",
-        "ANKR",
-        "BLOCK",
-        "ADA",
-        "ATOM",
-        "CELR",
-        "DAO",
-        "AVAX",
-        "DOT",
-        "ASTR",
-        "ENJ",
-        "GHX",
-        "FET",
-        "HNT",
-        "ATH",
-        "HOT",
-        "MUBI",
-        "HBAR",
-        "LDO",
-        "AXL",
-        "KSM",
-        "XRD",
-        "IMX",
-        "BLUR",
-        "MANTA",
-        "INJ",
-        "PENDLE",
-        "CHZ",
-        "PRCL",
-        "LINK",
-        "SEI",
-        "DRIFT",
-        "MKR",
-        "SUPER",
-        "DYDX",
-        "SAND",
-        "NEAR",
-        "TIA",
-        "ENA",
-        "SFUND",
-        "ONDO",
-        "VET",
-        "ETHFI",
-        "SNX",
-        "RNDR",
-        "VIRTUAL",
-        "GALA",
-        "SPEC",
-        "JUP",
-        "TAI",
-        "STX",
-        "LPT",
-        "SUI",
-        "PAAL",
-        "TON",
-        "PRIME",
-        "UNI",
-        "RAY",
-        "RON",
-        "SCRT",
-        "UMA",
-        "USUAL",
-    ]
-
     # Configurações de Limpeza e Retry
     signal_history_retention_days: int = 30  # Dias para manter histórico de sinais
     task_max_retry_attempts: int = 2  # Máximo de tentativas em caso de falha
@@ -170,9 +99,7 @@ class Settings(BaseSettings):
     """
 
     # Intervalos e Frequências
-    signal_monitoring_interval_seconds: int = (  # REMOVIDO
-        300  # Intervalo entre verificações de sinais - 5 minutos
-    )
+    mexc_sync_interval_seconds: int = 300  # Sincronização MEXC a cada 5 minutos
     database_cleanup_interval_seconds: int = (
         86400  # Intervalo para limpeza do banco (24h)
     )
@@ -200,56 +127,8 @@ class Settings(BaseSettings):
     # Limites da API - /rsi/multiple?symbols
     api_max_symbols_per_request: int = 200
 
-    # Configurações do Trading Coins - src/utils/trading_coins.py
-    trading_coins_volume_period: str = "24h"  # 24h, 7d, 30d
-    trading_coins_min_market_cap: int = 50_000_000  # $50M
-    trading_coins_min_volume: int = 3_000_000  # $3M
-    trading_coins_update_interval_days: int = 7  # Atualizar lista a cada 7 dias
-    trading_coins_max_limit: int = 500  # Máximo de moedas para buscar das exchanges
-
-    # Blacklist de moedas (stablecoins + problemáticas)
-    trading_coins_blacklist: List[str] = [
-        # Stablecoins
-        "USDT",
-        "USDC",
-        "BUSD",
-        "DAI",
-        "TUSD",
-        "FRAX",
-        "USDP",
-        "USDD",
-        "GUSD",
-        "LUSD",
-        "USDN",
-        "USDK",
-        "USDJ",
-        "USDE",
-        "USDS",
-        "USD1",
-        "BSC-USD",
-        "USDF",
-        "PYUSD",
-        "USDX",
-        "GHO",
-        "AUSD",
-        "SRUSD",
-        "DOLA",
-        "SUSDE",
-        "SUSDS",
-        "USDT0",
-        "FDUSD",
-        "USDG",
-        "USDC.E",
-        "USDL",
-        "BITCOIN",
-        "REKT",
-        "MELANIA",
-        "ALCH",
-        "XPR",
-        "RPL",
-        "WETH",
-        "SIGKILL",
-    ]
+    # Configurações MEXC
+    mexc_base_url: str = "https://api.mexc.com"
 
     class Config:
         env_file = ".env"

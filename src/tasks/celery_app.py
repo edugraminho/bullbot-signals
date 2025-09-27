@@ -38,21 +38,11 @@ celery_app.conf.update(
     task_time_limit=settings.celery_task_force_kill_timeout,
     # Configurações de Memória para ambientes com poucos recursos
     worker_max_memory_per_child=settings.celery_max_memory_per_child,
-    # Beat schedule para monitoramento
+    # Beat schedule para sincronização MEXC apenas
     beat_schedule={
-        "monitor-rsi-signals": {
-            "task": "src.tasks.monitor_tasks.monitor_rsi_signals",
-            "schedule": 300.0,  # A cada 5 minutos
-        },
-        # "cleanup-old-signals": {
-        #     "task": "src.tasks.monitor_tasks.cleanup_old_signals",
-        #     "schedule": float(settings.database_cleanup_interval_seconds),
-        # },
-        "update-trading-coins": {
-            "task": "src.tasks.monitor_tasks.update_trading_coins",
-            "schedule": float(
-                settings.trading_coins_update_interval_days * 24 * 60 * 60
-            ),
+        "sync-mexc-pairs": {
+            "task": "src.tasks.monitor_tasks.sync_mexc_pairs",
+            "schedule": float(settings.mexc_sync_interval_seconds),
         },
     },
 )

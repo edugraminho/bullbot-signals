@@ -34,7 +34,7 @@ class SignalHistory(Base):
     strength = Column(String(20), nullable=False)  # WEAK, MODERATE, STRONG
     price = Column(Float, nullable=False)
     timeframe = Column(String(10), nullable=False)  # 15m, 1h, 4h, etc
-    source = Column(String(20), nullable=False)  # binance, gate, mexc
+    source = Column(String(20), nullable=False)  # mexc
     message = Column(Text)
     created_at = Column(
         DateTime, default=lambda: datetime.now(timezone.utc), index=True
@@ -179,4 +179,47 @@ class UserMonitoringConfig(Base):
     __table_args__ = (
         # Constraint UNIQUE(user_id, config_name)
         UniqueConstraint("user_id", "config_name", name="uq_user_config_name"),
+    )
+
+
+class MEXCTradingPair(Base):
+    """Pares de trading da MEXC Exchange"""
+
+    __tablename__ = "trading_coins"
+
+    # Identificação
+    id = Column(Integer, primary_key=True)
+    symbol = Column(String(30), nullable=False, unique=True, index=True)
+    base_asset = Column(String(20), nullable=False, index=True)
+    quote_asset = Column(String(10), nullable=False, index=True)
+    full_name = Column(String(200))
+
+    # Dados OHLC para indicadores - usar Float para volumes grandes
+    current_price = Column(Float)
+    volume_24h = Column(Float)
+    quote_volume_24h = Column(Float)
+    open_price_24h = Column(Float)
+    high_price_24h = Column(Float)
+    low_price_24h = Column(Float)
+
+    # Trading essencial
+    maker_commission = Column(Float)
+    taker_commission = Column(Float)
+    base_asset_precision = Column(Integer)
+    quote_asset_precision = Column(Integer)
+
+    # Status
+    is_active = Column(Boolean, default=True, index=True)
+    is_spot_trading_allowed = Column(Boolean, default=True)
+
+    # Payload completo
+    raw_payload = Column(JSON)
+
+    # Controle
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        index=True,
     )

@@ -23,21 +23,18 @@ async def get_rsi(
     symbol: str,
     interval: str = Query(
         "1d",
-        description="Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M",
+        description="Intervalo: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M",
     ),
     window: int = Query(14, description="RSI calculation window"),
-    source: str = Query(
-        "binance", description="Fonte dos dados: binance, gate ou mexc"
-    ),
 ):
     """
-    Busca RSI para uma criptomoeda específica
+    Busca RSI para uma criptomoeda específica usando MEXC
 
     Exemplos de símbolos: BTC, ETH, SOL
     """
     try:
         rsi_service = RSIService()
-        rsi_data = await rsi_service.get_rsi(symbol, interval, window, source)
+        rsi_data = await rsi_service.get_rsi(symbol, interval, window)
 
         if not rsi_data:
             raise HTTPException(
@@ -52,7 +49,7 @@ async def get_rsi(
             timespan=rsi_data.timespan,
             window=rsi_data.window,
             source=rsi_data.source,
-            data_source=source,
+            data_source="mexc",
         )
 
     except Exception as e:
@@ -67,15 +64,12 @@ async def get_multiple_rsi(
     ),
     interval: str = Query(
         "1d",
-        description="Intervalo: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M",
+        description="Intervalo: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M",
     ),
     window: int = Query(14, description="RSI calculation window"),
-    source: str = Query(
-        "binance", description="Fonte dos dados: binance, gate ou mexc"
-    ),
 ):
     """
-    Busca RSI para múltiplas criptomoedas
+    Busca RSI para múltiplas criptomoedas usando MEXC
 
     Exemplo: /rsi/multiple?symbols=BTC,ETH,SOL
     """
@@ -96,10 +90,10 @@ async def get_multiple_rsi(
 
         rsi_service = RSIService()
 
-        # Buscar RSI para cada símbolo usando a fonte especificada
+        # Buscar RSI para cada símbolo usando MEXC
         rsi_results = {}
         for symbol in symbol_list:
-            rsi_data = await rsi_service.get_rsi(symbol, interval, window, source)
+            rsi_data = await rsi_service.get_rsi(symbol, interval, window)
             rsi_results[symbol] = rsi_data
 
         # Processar resultados
@@ -116,7 +110,7 @@ async def get_multiple_rsi(
                     timespan=rsi_data.timespan,
                     window=rsi_data.window,
                     source=rsi_data.source,
-                    data_source=source,
+                    data_source="mexc",
                 )
                 successful_count += 1
             else:
@@ -137,35 +131,18 @@ async def get_multiple_rsi(
 
 @router.get("/health", response_model=HealthResponse)
 async def health_check():
-    """Verifica se a integração com Gate.io está funcionando"""
+    """Verifica se a integração com MEXC está funcionando"""
     try:
         rsi_service = RSIService()
         # Testar com Bitcoin
-        rsi_data_gate = await rsi_service.get_rsi_from_gate("BTC", "1d", 14)
         rsi_data_mexc = await rsi_service.get_rsi_from_mexc("BTC", "1d", 14)
-        rsi_data_binance = await rsi_service.get_rsi_from_binance("BTC", "1d", 14)
 
         return HealthResponse(
-            status="healthy"
-            if all([rsi_data_gate, rsi_data_mexc, rsi_data_binance])
-            else "degraded",
-            api={
-                "gate": "connected" if rsi_data_gate else "error",
-                "mexc": "connected" if rsi_data_mexc else "error",
-                "binance": "connected" if rsi_data_binance else "error",
-            },
+            status="healthy" if rsi_data_mexc else "degraded",
+            api={"mexc": "connected" if rsi_data_mexc else "error"},
             message="RSI service operational"
-            if all([rsi_data_gate, rsi_data_mexc, rsi_data_binance])
-            else "Unable to fetch RSI data from: "
-            + ", ".join(
-                name
-                for name, ok in [
-                    ("gate", rsi_data_gate),
-                    ("mexc", rsi_data_mexc),
-                    ("binance", rsi_data_binance),
-                ]
-                if not ok
-            ),
+            if rsi_data_mexc
+            else "Unable to fetch RSI data from MEXC",
         )
 
     except Exception as e:
