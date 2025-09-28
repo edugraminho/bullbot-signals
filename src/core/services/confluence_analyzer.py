@@ -4,7 +4,10 @@ Combina RSI, EMA, MACD, Volume para gerar sinais mais precisos
 """
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.core.models.crypto import RSILevels
 
 from src.core.models.crypto import RSIData
 from src.core.models.signals import SignalStrength, SignalType, TradingSignal
@@ -53,6 +56,7 @@ class ConfluenceAnalyzer:
         rsi_data: RSIData,
         symbol: str = "UNKNOWN",
         timespan: str = "15m",
+        custom_rsi_levels: Optional["RSILevels"] = None,
     ) -> ConfluenceResult:
         """
         Analisa confluência de todos os indicadores
@@ -75,7 +79,7 @@ class ConfluenceAnalyzer:
             volume_data = self._analyze_volume_signals(ohlcv_data, symbol, timespan)
 
             # Determinar tipo de sinal baseado no RSI
-            signal_type = self._determine_signal_type(rsi_data)
+            signal_type = self._determine_signal_type(rsi_data, custom_rsi_levels)
 
             if signal_type is None:
                 # RSI em zona neutra, não gerar sinal
@@ -204,13 +208,23 @@ class ConfluenceAnalyzer:
                 "is_obv_trending_up": False,
             }
 
-    def _determine_signal_type(self, rsi_data: RSIData) -> Optional[SignalType]:
+    def _determine_signal_type(
+        self, rsi_data: RSIData, custom_rsi_levels: Optional["RSILevels"] = None
+    ) -> Optional[SignalType]:
         """Determina o tipo de sinal baseado no RSI"""
         rsi_value = rsi_data.value
 
-        if rsi_value <= self.config.rsi_oversold:
+        # Usar níveis customizados se fornecidos, senão usar config padrão
+        if custom_rsi_levels:
+            oversold = custom_rsi_levels.oversold
+            overbought = custom_rsi_levels.overbought
+        else:
+            oversold = self.config.rsi_oversold
+            overbought = self.config.rsi_overbought
+
+        if rsi_value <= oversold:
             return SignalType.BUY
-        elif rsi_value >= self.config.rsi_overbought:
+        elif rsi_value >= overbought:
             return SignalType.SELL
         else:
             return None  # Zona neutra
@@ -458,4 +472,3 @@ class ConfluenceAnalyzer:
             risk_level="ALTO",
             current_price=float(rsi_data.current_price),
         )
-

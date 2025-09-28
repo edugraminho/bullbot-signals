@@ -37,8 +37,8 @@ async def get_system_status(db: Session = Depends(get_db)):
         total_configs = db.query(UserMonitoringConfig).count()
         active_configs = (
             db.query(UserMonitoringConfig)
-            .filter(UserMonitoringConfig.active == True)  # noqa: E712
-            .count()  # noqa: E712
+            .filter(UserMonitoringConfig.active.is_(True))
+            .count()
         )
 
         # Contar sinais das últimas 24h
@@ -52,7 +52,7 @@ async def get_system_status(db: Session = Depends(get_db)):
         # Contar usuários únicos ativos
         unique_users = (
             db.query(UserMonitoringConfig.user_id)
-            .filter(UserMonitoringConfig.active == True)  # noqa: E712
+            .filter(UserMonitoringConfig.active.is_(True))
             .distinct()
             .count()
         )
@@ -90,7 +90,7 @@ async def get_all_users(
         query = db.query(UserMonitoringConfig)
 
         if active_only:
-            query = query.filter(UserMonitoringConfig.active == True)  # noqa: E712
+            query = query.filter(UserMonitoringConfig.active.is_(True))
 
         configs = (
             query.order_by(desc(UserMonitoringConfig.created_at))
@@ -332,7 +332,7 @@ async def get_symbols_usage_stats(db: Session = Depends(get_db)):
         # Buscar todas as configurações ativas
         active_configs = (
             db.query(UserMonitoringConfig)
-            .filter(UserMonitoringConfig.active == True)  # noqa: E712
+            .filter(UserMonitoringConfig.active.is_(True))
             .all()
         )
 

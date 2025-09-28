@@ -490,7 +490,9 @@ class SignalFilter:
             cooldown_duration = self._get_cooldown_duration(
                 timeframe, strength, user_filter_config
             )
-            self.redis_client.setex(cooldown_key, cooldown_duration, time.time())
+            # Garantir que cooldown_duration seja pelo menos 1 segundo para Redis
+            safe_cooldown = max(1, int(cooldown_duration))
+            self.redis_client.setex(cooldown_key, safe_cooldown, time.time())
 
             # Atualizar último RSI
             rsi_key = f"last_rsi:{symbol}:{timeframe}"

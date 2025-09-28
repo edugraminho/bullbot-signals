@@ -74,15 +74,14 @@ O BullBot Signals é uma aplicação de análise técnica avançada que utiliza 
 - **FastAPI** - Framework web
 - **Pydantic** - Validação de dados
 - **Docker** - Containerização
-- **Gate.io API** - Dados de mercado spot
-- **Binance API** - Dados de mercado spot
-- **MEXC API** - Dados de mercado spot
+- **MEXC API** - Dados de mercado spot (exchange única)
 - **Pytest** - Testes
 
 ## 📋 Pré-requisitos
 
 - Docker e Docker Compose
-- Conexão com internet para acessar a API da Gate.io
+- Conexão com internet para acessar a API da MEXC
+- PostgreSQL (via Docker Compose)
 
 ## 🚀 Instalação
 
@@ -112,76 +111,50 @@ docker-compose up -d
 LOG_LEVEL=INFO
 ```
 
-## 🔗 Integração Gate.io
+## 🔗 Sistema de Trading Coins
 
-O projeto inclui integração com a API da [Gate.io](https://www.gate.io/docs/apiv4/) para obtenção de dados OHLCV e cálculo próprio do RSI.
+O sistema agora utiliza um **banco de dados PostgreSQL** para armazenar e gerenciar os pares de trading da MEXC, substituindo completamente o sistema anterior baseado em CSV.
 
-### Estrutura da Resposta da API Gate.io
+### Tabela `trading_coins` (MEXCTradingPair)
 
-A API `/spot/candlesticks` retorna dados em formato de array com **8 elementos** por item:
-
-| Índice | Campo | Descrição |
-|--------|-------|-----------|
-| 0 | **Unix timestamp** | Timestamp em segundos com precisão de segundo |
-| 1 | **Trading volume in quote currency** | Volume em moeda de cotação (ex: USDT) |
-| 2 | **Closing price** | Preço de fechamento |
-| 3 | **Highest price** | Preço mais alto |
-| 4 | **Lowest price** | Preço mais baixo |
-| 5 | **Opening price** | Preço de abertura |
-| 6 | **Trading volume in base currency** | Volume em moeda base (ex: BTC) |
-| 7 | **Whether window is closed** | Se a janela está fechada (true/false) |
-
-### Exemplo de Resposta
-
-```json
-[
-  ["1753939800", "529716.35440640", "118358.8", "118423.4", "118358.8", "118379.9", "4.47380600", "true"],
-  ["1753940700", "345738.77105720", "118357.6", "118384.3", "118341.9", "118358.8", "2.92103900", "true"]
-]
+```sql
+CREATE TABLE trading_coins (
+    id SERIAL PRIMARY KEY,
+    symbol VARCHAR(30) UNIQUE NOT NULL,        -- BTCUSDT, ETHUSDT
+    base_asset VARCHAR(20) NOT NULL,           -- BTC, ETH, SOL
+    quote_asset VARCHAR(10) NOT NULL,          -- USDT
+    current_price FLOAT,                       -- Preço atual
+    volume_24h FLOAT,                          -- Volume 24h
+    is_active BOOLEAN DEFAULT TRUE,            -- Par ativo
+    is_spot_trading_allowed BOOLEAN DEFAULT TRUE, -- Spot trading habilitado
+    raw_payload JSON,                          -- Dados completos da MEXC
+    updated_at TIMESTAMP                       -- Última atualização
+);
 ```
 
-### Intervals Suportados
+### Sincronização Automática
 
-- `1s`, `10s`, `1m`, `5m`, `15m`, `30m`
-- `1h`, `4h`, `8h`, `1d`, `7d`, `30d`
-
-### Limites da API
-
-- **Máximo**: 1000 pontos por consulta
-- **Rate Limit**: Não especificado na documentação pública
-- **Autenticação**: Não requerida para dados públicos
-
-## 🔗 Integração Binance
-
-O projeto também inclui integração com a API da [Binance](https://binance-docs.github.io/apidocs/spot/en/#kline-candlestick-data), a maior exchange de criptomoedas do mundo.
-
-### Vantagens da Binance
-
-- **📊 Maior liquidez**: Dados mais precisos e confiáveis
-- **⚡ Rate limit alto**: 1200 requests/min (vs 50/min do CoinGecko)
-- **🌍 Padrão da indústria**: Usada por muitas ferramentas incluindo TradingView
-- **📈 Timeframes completos**: 15 opções de intervalos
-- **🔒 Estabilidade**: API muito estável e bem mantida
-
-### Intervals Suportados
-
-- `1m`, `3m`, `5m`, `15m`, `30m`
-- `1h`, `2h`, `4h`, `6h`, `8h`, `12h`
-- `1d`, `3d`, `1w`, `1M`
-
-### Limites da API
-
-- **Máximo**: 1000 pontos por consulta
-- **Rate Limit**: 1200 requests/min
-- **Autenticação**: Não requerida para dados públicos
+- **Frequência**: A cada 5 minutos via Celery task
+- **Fonte**: API `/api/v3/ticker/24hr` + `/api/v3/exchangeInfo` da MEXC
+- **Volume**: ~2.173 pares totais, ~1.705 pares USDT
+- **Operação**: UPSERT (INSERT ON CONFLICT UPDATE)
 
 ## 🎮 Como Usar
 
 ### Teste Rápido da Integração
 
 ```bash
-# Testar conexão com Gate.io
-docker-compose exec app python -c "from src.adapters.gate_client import GateClient; print('Gate.io client loaded successfully')"
+# Testar conexão com MEXC
+docker-compose exec app python -c "from src.services.mexc_client import MEXCClient; print('MEXC client loaded successfully')"
+
+# Verificar símbolos disponíveis
+docker-compose exec app python -c "
+from src.services.mexc_pairs_service import mexc_pairs_service
+symbols = mexc_pairs_service.get_active_symbols('USDT')
+print(f'Símbolos USDT ativos: {len(symbols)}')
+print(f'Primeiros 10: {symbols[:10]}')
+"
+
 ```
 
 ### Executar a Aplicação
@@ -290,95 +263,6 @@ O sistema é totalmente configurável através do projeto **bullbot-telegram**:
 ⚠️ Aviso: Volume baixo pode indicar breakout falso
 ```
 
-## 📊 API Endpoints
-
-### Análise de Confluência
-```bash
-GET /api/v1/confluence/{symbol}
-```
-
-**Parâmetros:**
-- `symbol`: Símbolo da criptomoeda (ex: BTC, ETH, SOL)
-- `interval`: Intervalo (15m, 1h, 4h, 1d)
-- `source`: Fonte dos dados (mexc)
-
-**Exemplo:**
-```bash
-curl "http://localhost:8000/api/v1/confluence/BTC?interval=15m"
-```
-
-**Resposta:**
-```json
-{
-  "signal": {
-    "symbol": "BTC",
-    "signal_type": "BUY",
-    "strength": "STRONG",
-    "rsi_value": 18.4,
-    "price": 67530.25,
-    "timestamp": "2025-01-31T15:30:00Z",
-    "timeframe": "15m",
-    "message": "Sinal de COMPRA STRONG - Score: 6/8"
-  },
-  "confluence_score": {
-    "total_score": 6,
-    "max_possible_score": 8,
-    "details": {
-      "RSI": {
-        "score": 2,
-        "value": 18.4,
-        "reason": "RSI 18.4 em zona de sobrevenda",
-        "levels": {
-          "oversold": 20,
-          "overbought": 80,
-          "current_zone": "oversold"
-        }
-      },
-      "EMA": {
-        "score": 3,
-        "trending_up": true,
-        "reason": "EMA favorável ao sinal",
-        "values": {
-          "ema_9": 67234.56,
-          "ema_21": 66825.78,
-          "ema_50": 66210.45,
-          "price_above_ema_50": true
-        }
-      },
-      "MACD": {
-        "score": 1,
-        "is_bullish": true,
-        "reason": "MACD confirma o sinal",
-        "values": {
-          "macd_line": 234.12,
-          "signal_line": 167.89,
-          "histogram": 66.23,
-          "crossover": "bullish"
-        }
-      },
-      "Volume": {
-        "score": 0,
-        "is_high_volume": false,
-        "obv_trending_up": true,
-        "reason": "Volume não suporta o sinal",
-        "values": {
-          "volume_ratio": 0.85,
-          "obv": 12345678.90,
-          "vwap": 67230.12,
-          "price_vs_vwap": "above",
-          "volume_threshold": "85%"
-        }
-      }
-    }
-  },
-  "recommendation": "Sinal de COMPRA STRONG - Score: 6/8",
-  "risk_level": "BAIXO",
-  "current_price": 67530.25
-}
-```
-
-
-
 ### Health Check
 ```bash
 GET /api/v1/health
@@ -444,26 +328,26 @@ bullbot-signals/
 │   │       ├── confluence_analyzer.py # Sistema de confluência
 │   │       ├── rsi_service.py         # Orquestração principal
 │   │       └── signal_filter.py       # Filtros anti-spam
-│   ├── adapters/                       # 🔌 Integrações externas
-│   │   ├── binance_client.py          # Cliente Binance
-│   │   ├── gate_client.py             # Cliente Gate.io
-│   │   └── mexc_client.py             # Cliente MEXC
+│   ├── services/                       # 🔌 Integrações e serviços
+│   │   ├── mexc_client.py             # Cliente MEXC (única exchange)
+│   │   └── mexc_pairs_service.py      # Gerenciamento pares MEXC
 │   ├── api/                            # 🌐 Interface HTTP
 │   │   ├── schemas/                    # DTOs de serialização
 │   │   ├── routes/                     # Endpoints organizados
 │   │   └── main.py                    # App principal
 │   ├── tasks/                          # ⚡ Processamento assíncrono
 │   │   ├── celery_app.py              # Configuração Celery
-│   │   └── monitor_tasks.py           # Monitoramento automático
+│   │   └── monitor_tasks.py           # Monitoramento + Sync MEXC
 │   ├── database/                       # 💾 Persistência
-│   │   ├── models.py                  # Modelos SQLAlchemy
-│   │   └── connection.py              # Conexão DB
-│   └── utils/                          # 🛠️ Utilitários
-│       ├── config.py                  # Configurações indicadores
-│       ├── logger.py                  # Logging estruturado
-│       └── trading_coins.py           # Curação de moedas
+│   │   ├── models.py                  # SQLAlchemy (MEXCTradingPair, etc.)
+│   │   └── connection.py              # Conexão PostgreSQL
+│   ├── utils/                          # 🛠️ Utilitários
+│   │   ├── config.py                  # Configurações do sistema
+│   │   └── logger.py                  # Logging estruturado
+│   └── scripts/                        # 📜 Scripts SQL e utilitários
+│       └── insert_test_user_monitoring_configs.sql
 ├── tests/                              # 🧪 Testes
-├── docker-compose.yml                  # 🐳 Configuração Docker
+├── docker-compose.yml                  # 🐳 PostgreSQL + Redis + App
 ├── Dockerfile                          # 🐳 Imagem Docker
 └── requirements.txt                    # 📦 Dependências
 ```
@@ -517,7 +401,7 @@ O **BullBot Signals** é projetado para alimentar grupos do Telegram através do
 
 💰 Preço Atual: $67,530.25
 📈 Timeframe: 15 minutos
-⚡ Exchange: Binance
+⚡ Exchange: MEXC
 🎚️ Força: STRONG (6/8 = 75%)
 ⚠️ Risco: BAIXO
 
@@ -574,3 +458,285 @@ Cada grupo pode ter configurações personalizadas via **bullbot-telegram**:
 - **SEMPRE execute comandos Python em containers**
 - Use `docker-compose exec app` para todos os comandos Python
 - Nunca execute Python diretamente no ambiente local
+
+## 🗄️ Script SQL de Teste
+
+Para testar o sistema de monitoramento, execute o script SQL localizado em `scripts/insert_test_user_monitoring_configs.sql`:
+
+```sql
+-- Configuração para cryptos populares em timeframe 15m
+INSERT INTO user_monitoring_configs (
+    user_id,
+    chat_id,
+    chat_type,
+    username,
+    user_username,
+    config_type,
+    priority,
+    config_name,
+    description,
+    symbols,
+    timeframes,
+    indicators_config,
+    filter_config,
+    active
+) VALUES (
+    123456,
+    '123456',
+    'private',
+    'crypto_trader',
+    'crypto_trader',
+    'personal',
+    1,
+    'popular_15m',
+    'Monitoramento de cryptos populares em 15 minutos',
+    ARRAY['BTC', 'ETH', 'SOL', 'BNB', 'ADA', 'DOT', 'AVAX', 'LINK', 'UNI', 'ATOM'],
+    ARRAY['15m'],
+    '{
+        "RSI": {
+            "enabled": true,
+            "period": 14,
+            "oversold": 50,
+            "overbought": 50
+        },
+        "EMA": {
+            "enabled": true,
+            "fast_period": 9,
+            "medium_period": 21,
+            "slow_period": 50
+        },
+        "MACD": {
+            "enabled": true,
+            "fast_period": 12,
+            "slow_period": 26,
+            "signal_period": 9
+        },
+        "Volume": {
+            "enabled": true,
+            "sma_period": 20,
+            "volume_threshold": 0.5
+        }
+    }'::jsonb,
+    '{
+        "cooldown_minutes": 5,
+        "max_signals_per_day": 50,
+        "min_rsi_difference": 0.1,
+        "min_confluence_score": 1
+    }'::jsonb,
+    true
+);
+```
+
+Esta configuração monitora **10 cryptos populares** (BTC, ETH, SOL, BNB, ADA, DOT, AVAX, LINK, UNI, ATOM) no timeframe de **15 minutos** com parâmetros otimizados para capturar mais sinais durante testes (RSI 50/50, volume baixo, cooldown 5min, score mínimo 1).
+
+**Nota:** A validação de símbolos é feita diretamente contra o banco MEXC verificando se o par `base_asset/USDT` está ativo e com `is_spot_trading_allowed=true`. Símbolos como BTC e ETH podem estar indisponíveis se a MEXC desabilitou trading spot para esses pares.
+
+## 📊 Estruturas de Dados Aprimoradas
+
+### 🔥 SignalHistory - Dados Completos de Sinais
+
+O modelo `SignalHistory` foi **completamente reestruturado** para capturar dados ricos de trading com análise profissional. Principais melhorias:
+
+#### 🎯 **Correção Crítica**
+- ✅ **Campo `price`**: Agora salva o **preço real da moeda** (ex: $67,530.25)
+- ✅ **Campo `rsi_value`**: Valor específico do RSI em campo separado (ex: 18.4)
+
+#### 📈 **Dados de Trading Profissionais**
+```sql
+-- Novos campos para análise técnica completa
+rsi_value              FLOAT NOT NULL,     -- Valor do RSI no momento do sinal
+entry_price            FLOAT,              -- Preço de entrada sugerido
+stop_loss              FLOAT,              -- Stop loss calculado baseado em EMAs
+take_profit            FLOAT,              -- Take profit baseado na força do sinal
+risk_reward_ratio      FLOAT,              -- Ratio risco/retorno calculado
+
+-- Dados de mercado reais da MEXC
+volume_24h             FLOAT,              -- Volume 24h real da MEXC
+quote_volume_24h       FLOAT,              -- Volume em USDT 24h
+high_24h               FLOAT,              -- Máxima 24h
+low_24h                FLOAT,              -- Mínima 24h
+price_change_24h       FLOAT,              -- Variação % 24h real
+
+-- Scores e qualidade melhorados
+confidence_score       FLOAT,              -- % de confluência (0-100)
+combined_score         FLOAT,              -- Score absoluto dos indicadores
+max_possible_score     INTEGER,            -- Score máximo possível
+signal_quality         VARCHAR(20),        -- EXCELLENT, GOOD, FAIR, POOR
+```
+
+#### 🗂️ **Estruturas JSON Documentadas**
+
+##### **1. `indicator_data`** - Dados Estruturados Completos
+```json
+{
+  "signal_info": {
+    "type": "BUY",
+    "strength": "STRONG",
+    "message": "Sinal de compra forte detectado",
+    "recommendation": "COMPRA FORTE",
+    "risk_level": "MEDIUM",
+    "timestamp": "2024-01-15T10:30:00Z"
+  },
+  "market_data": {
+    "current_price": 43250.75,
+    "volume_24h": 1234567.89,
+    "price_change_24h_pct": 2.45,
+    "high_24h": 44000.0,
+    "low_24h": 42500.0,
+    "spread_pct": 0.02,
+    "source": "mexc"
+  },
+  "confluence_analysis": {
+    "total_score": 6,
+    "max_possible_score": 8,
+    "score_percentage": 75.0,
+    "signal_strength": "STRONG",
+    "is_valid_signal": true,
+    "breakdown_by_indicator": {
+      "RSI": {"score": 2, "value": 25.5, "reason": "RSI em zona de sobrevenda"},
+      "EMA": {"score": 2, "trending_up": true, "reason": "Preço acima das EMAs"},
+      "MACD": {"score": 1, "is_bullish": true, "reason": "Crossover bullish"},
+      "Volume": {"score": 1, "is_high_volume": true, "reason": "Volume acima da média"}
+    }
+  },
+  "technical_indicators": {
+    "rsi": {
+      "value": 25.5,
+      "score": 2,
+      "zone": "oversold",
+      "interpretation": "RSI em zona de sobrevenda forte",
+      "is_contributing": true
+    },
+    "ema": {
+      "score": 2,
+      "trending_up": true,
+      "values": {"ema_9": 43100.0, "ema_21": 42900.0, "ema_50": 42700.0},
+      "price_position": {"above_ema_50": true, "trend_alignment": "bullish"},
+      "is_contributing": true
+    },
+    "macd": {
+      "score": 1,
+      "is_bullish": true,
+      "values": {"macd_line": 150.5, "signal_line": 120.3, "histogram": 30.2},
+      "crossover_type": "bullish_crossover",
+      "momentum_strength": "moderate",
+      "is_contributing": true
+    },
+    "volume": {
+      "score": 1,
+      "is_high_volume": true,
+      "obv_trending_up": true,
+      "values": {"volume_ratio": 1.45, "obv": 123456.78, "vwap": 43150.0},
+      "volume_quality": "good",
+      "is_contributing": true
+    }
+  },
+  "trading_recommendations": {
+    "entry_price": 43250.75,
+    "stop_loss": 41800.0,
+    "take_profit": 45500.0,
+    "risk_reward_ratio": 2.1,
+    "position_size_pct": 2.5,
+    "signal_quality": "GOOD",
+    "timeframe": "15m",
+    "strategy_notes": "Sinal de COMPRA STRONG no timeframe 15m. Confirmado por: RSI, EMA, MACD, Volume. Adequado para scalping."
+  }
+}
+```
+
+##### **2. `indicator_config`** - Configurações dos Indicadores
+```json
+{
+  "rsi_window": 14,
+  "timeframe": "15m",
+  "exchange": "mexc",
+  "confluence_enabled": true,
+  "custom_rsi_levels": {
+    "oversold": 30,
+    "overbought": 70
+  },
+  "ema_periods": {
+    "short": 9,
+    "medium": 21,
+    "long": 50
+  },
+  "macd_config": {
+    "fast_period": 12,
+    "slow_period": 26,
+    "signal_period": 9
+  },
+  "volume_config": {
+    "sma_period": 20,
+    "threshold_multiplier": 1.2
+  },
+  "confluence_thresholds": {
+    "15m": {"min_score": 4, "min_indicators": 2},
+    "1h": {"min_score": 4, "min_indicators": 2},
+    "4h": {"min_score": 5, "min_indicators": 3}
+  }
+}
+```
+
+##### **3. `market_context`** - Contexto de Mercado
+```json
+{
+  "volatility_pct": 3.25,
+  "trend_sentiment": "bullish",
+  "price_momentum_pct": 1.85,
+  "range_ratio": 1.15,
+  "volume_ratio": 1.45,
+  "is_high_volatility": false,
+  "is_expanding_range": true,
+  "avg_volume_10_periods": 987654.32,
+  "market_phase": "trending",
+  "support_resistance": {
+    "nearest_support": 42500.0,
+    "nearest_resistance": 44000.0,
+    "support_strength": "strong",
+    "resistance_strength": "moderate"
+  },
+  "momentum_indicators": {
+    "price_velocity": 0.85,
+    "acceleration": 0.15,
+    "momentum_direction": "positive"
+  },
+  "volume_analysis": {
+    "volume_trend": "increasing",
+    "volume_profile": "bullish",
+    "institutional_activity": "moderate"
+  },
+  "market_structure": {
+    "trend_strength": "moderate",
+    "consolidation_risk": "low",
+    "breakout_potential": "high"
+  }
+}
+```
+
+### 🚀 **Benefícios das Melhorias**
+
+#### 📊 **Para Análise Técnica:**
+- **Dados Precisos**: Preço real separado do valor RSI
+- **Contexto Rico**: Volatilidade, momentum, suporte/resistência
+- **Trading Profissional**: Stop loss, take profit, risk/reward calculados
+- **Qualidade Medida**: Score de qualidade EXCELLENT/GOOD/FAIR/POOR
+
+#### 🤖 **Para Integração:**
+- **JSON Estruturado**: Fácil parsing para bots e dashboards
+- **Versionamento**: `data_structure_version` para compatibilidade
+- **Metadados**: Timestamp, componentes incluídos, fonte dos dados
+- **Flexibilidade**: Estrutura expansível para novos indicadores
+
+#### 📈 **Para Performance:**
+- **Índices Otimizados**: Campos principais indexados para queries rápidas
+- **Dados Desnormalizados**: Redução de JOINs com dados estruturados em JSON
+- **Configuração Persistente**: Histórico das configurações usadas em cada sinal
+
+### 🛠️ **Novos Serviços Implementados**
+
+- **`SignalDataBuilder`**: Constrói estrutura JSON rica e organizada
+- **`TradingRecommendations`**: Calcula stop loss, take profit, position size
+- **`MEXCClient.get_market_data_24h()`**: Dados de mercado reais da MEXC
+- **`MEXCClient.get_market_context()`**: Análise de contexto e volatilidade
+
+Com essas melhorias, o sistema agora captura **dados completos de trading profissional**, facilitando análises avançadas e integração com sistemas de automação! 🎯

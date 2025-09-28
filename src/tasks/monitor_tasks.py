@@ -370,42 +370,146 @@ def process_single_symbol(
                 )
             )
 
-            # Salvar sinal no banco de dados
+            # Salvar sinal no banco de dados com dados completos
             try:
+                # Imports necessários para dados completos
+                from src.core.services.signal_data_builder import SignalDataBuilder
+                from src.core.services.trading_recommendations import TradingRecommendations
+                from src.services.mexc_client import MEXCClient
+
+                market_data_24h = None
+                market_context = None
+
+                # Usar event loop para chamadas async (padrão já usado no código)
+                market_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(market_loop)
+
+                try:
+                    async def get_market_data():
+                        async with MEXCClient() as mexc_client:
+                            # Buscar dados 24h reais da MEXC
+                            market_data = await mexc_client.get_market_data_24h(symbol)
+
+                            # Calcular contexto de mercado
+                            context = {}
+                            try:
+                                ohlcv_context = await mexc_client.get_ohlcv(symbol, rsi_timeframe, 50)
+                                if ohlcv_context:
+                                    ohlcv_dict_context = [
+                                        {
+                                            "timestamp": item.timestamp,
+                                            "open": float(item.open),
+                                            "high": float(item.high),
+                                            "low": float(item.low),
+                                            "close": float(item.close),
+                                            "volume": float(item.volume),
+                                        }
+                                        for item in ohlcv_context
+                                    ]
+                                    context = await mexc_client.get_market_context(symbol, ohlcv_dict_context)
+                            except Exception as context_error:
+                                logger.warning(f"Não foi possível obter contexto de mercado: {context_error}")
+
+                            return market_data, context
+
+                    market_data_24h, market_context = market_loop.run_until_complete(get_market_data())
+
+                finally:
+                    market_loop.close()
+
+                # Calcular recomendações de trading
+                trading_recommendations = TradingRecommendations.calculate_recommendations(
+                    signal_type=analysis.signal.signal_type,
+                    signal_strength=analysis.signal.strength,
+                    current_price=analysis.current_price,
+                    confluence_details=analysis.confluence_score.details,
+                    timeframe=rsi_timeframe,
+                    market_context=market_context
+                )
+
+                # Construir dados estruturados completos
+                enhanced_indicator_data = SignalDataBuilder.build_indicator_data(
+                    confluence_result=analysis,
+                    market_data_24h=market_data_24h,
+                    market_context=market_context,
+                    trading_recommendations=trading_recommendations
+                )
+
+                # Calcular score de confiança como % de confluência
+                confidence_score = (analysis.confluence_score.total_score / analysis.confluence_score.max_possible_score) * 100 if analysis.confluence_score.max_possible_score > 0 else 0
+
                 db = SessionLocal()
 
-                # Criar registro do sinal com dados de confluência
+                # ✅ CORRIGIDO: Usar preço real da moeda, não RSI value
+                current_price = market_data_24h.get("current_price") if market_data_24h else float(analysis.current_price)
+
+                # Helper para converter Decimais em floats recursivamente
+                def convert_decimals_to_float(obj):
+                    """Converte objetos Decimal para float recursivamente em dicts/lists"""
+                    if isinstance(obj, dict):
+                        return {k: convert_decimals_to_float(v) for k, v in obj.items()}
+                    elif isinstance(obj, list):
+                        return [convert_decimals_to_float(item) for item in obj]
+                    elif hasattr(obj, '__dict__'):  # Objetos com atributos
+                        return convert_decimals_to_float(obj.__dict__)
+                    elif str(type(obj)).find('Decimal') != -1:  # Detect Decimal objects
+                        return float(obj)
+                    else:
+                        return obj
+
+                # Criar registro completo do sinal
                 signal_record = SignalHistory(
                     symbol=symbol,
                     signal_type=analysis.signal.signal_type.value,
                     strength=analysis.signal.strength.value,
-                    price=float(
-                        analysis.signal.rsi_value
-                    ),  # Usar RSI como preço de referência
+
+                    # ✅ CORREÇÃO CRÍTICA: Usar preço real da moeda
+                    price=float(current_price),
+
+                    # Novos campos técnicos
+                    rsi_value=float(analysis.signal.rsi_value),
+                    entry_price=trading_recommendations.get("entry_price"),
+                    stop_loss=trading_recommendations.get("stop_loss"),
+                    take_profit=trading_recommendations.get("take_profit"),
+                    risk_reward_ratio=trading_recommendations.get("risk_reward_ratio"),
+
                     timeframe=rsi_timeframe,
                     source=exchange,
-                    message=analysis.signal.message,  # Usar mensagem da confluência
+                    message=analysis.signal.message,
+
+                    # Dados de mercado reais da MEXC
+                    volume_24h=market_data_24h.get("volume_24h") if market_data_24h else None,
+                    price_change_24h=market_data_24h.get("price_change_24h_pct") if market_data_24h else None,
+                    high_24h=market_data_24h.get("high_price_24h") if market_data_24h else None,
+                    low_24h=market_data_24h.get("low_price_24h") if market_data_24h else None,
+                    quote_volume_24h=market_data_24h.get("quote_volume_24h") if market_data_24h else None,
+
+                    # Contexto de mercado (converter Decimais para floats)
+                    market_context=convert_decimals_to_float(market_context),
+
+                    # Indicadores estruturados (converter Decimais para floats)
                     indicator_type=["RSI", "EMA", "MACD", "Volume", "Confluence"],
-                    indicator_data={
-                        "confluence_score": {
-                            "total_score": analysis.confluence_score.total_score,
-                            "max_possible_score": analysis.confluence_score.max_possible_score,
-                            "details": analysis.confluence_score.details,
-                        },
-                        "rsi_value": float(analysis.signal.rsi_value),
-                        "recommendation": analysis.recommendation,
-                        "risk_level": analysis.risk_level,
-                    },
-                    indicator_config={
+                    indicator_data=convert_decimals_to_float(enhanced_indicator_data),
+                    indicator_config=convert_decimals_to_float({
                         "rsi_window": rsi_window,
                         "timeframe": rsi_timeframe,
                         "exchange": exchange,
                         "confluence_enabled": True,
-                    },
-                    volume_24h=None,  # Volume será calculado pelos indicadores de volume
-                    price_change_24h=None,  # Não disponível no ConfluenceResult
-                    confidence_score=None,  # Usar combined_score como alternativa
+                        "custom_rsi_levels": {
+                            "oversold": getattr(rsi_service.rsi_levels, 'oversold', 20),
+                            "overbought": getattr(rsi_service.rsi_levels, 'overbought', 80)
+                        }
+                    }),
+
+                    # Scores melhorados
+                    confidence_score=round(confidence_score, 1),
                     combined_score=float(analysis.confluence_score.total_score),
+                    max_possible_score=analysis.confluence_score.max_possible_score,
+
+                    # Qualidade do sinal
+                    signal_quality=trading_recommendations.get("signal_quality", "FAIR"),
+
+                    # Controle de processamento
                     processed=False,  # Aguardando processamento pelo bot do Telegram
                     processing_time_ms=int((time.time() - symbol_start_time) * 1000),
                 )
@@ -417,12 +521,15 @@ def process_single_symbol(
                 db.close()
 
                 logger.info(
-                    f"💾 SINAL SALVO NO BANCO: {symbol} | {analysis.signal.signal_type.value} | "
-                    f"RSI: {float(analysis.signal.rsi_value):.2f} | Score: {analysis.confluence_score.total_score}/8 | ID: {signal_id}"
+                    f"💾 SINAL COMPLETO SALVO: {symbol} | {analysis.signal.signal_type.value} | "
+                    f"Preço: ${float(current_price):.4f} | RSI: {float(analysis.signal.rsi_value):.2f} | "
+                    f"Score: {analysis.confluence_score.total_score}/{analysis.confluence_score.max_possible_score} ({confidence_score:.1f}%) | "
+                    f"RR: {trading_recommendations.get('risk_reward_ratio', 'N/A')} | "
+                    f"Qualidade: {trading_recommendations.get('signal_quality', 'N/A')} | ID: {signal_id}"
                 )
 
             except Exception as db_error:
-                logger.error(f"❌ Erro ao salvar sinal no banco: {db_error}")
+                logger.error(f"❌ Erro ao salvar sinal completo no banco: {db_error}")
                 signal_id = None
                 if "db" in locals():
                     db.rollback()
@@ -467,7 +574,7 @@ def get_active_symbols() -> List[str]:
         active_configs = (
             db.query(UserMonitoringConfig)
             .filter(
-                UserMonitoringConfig.active == True  # noqa: E712
+                UserMonitoringConfig.active.is_(True)
             )
             .all()
         )
@@ -497,7 +604,7 @@ def get_active_symbols() -> List[str]:
     except Exception as e:
         logger.error(f"❌ Erro ao agregar símbolos das configurações: {e}")
         # Fallback para lista padrão em caso de erro
-        fallback_symbols = task_config.default_symbols
+        fallback_symbols = ["BTC", "ETH", "SOL", "BNB", "ADA"]
         logger.info(f"Usando {len(fallback_symbols)} símbolos do fallback padrão")
         return fallback_symbols
 
@@ -510,7 +617,7 @@ def get_active_timeframes() -> List[str]:
         active_configs = (
             db.query(UserMonitoringConfig)
             .filter(
-                UserMonitoringConfig.active == True  # noqa: E712
+                UserMonitoringConfig.active.is_(True)
             )
             .all()
         )
@@ -557,7 +664,7 @@ def get_active_monitoring_configs() -> List[UserMonitoringConfig]:
         configs = (
             db.query(UserMonitoringConfig)
             .filter(
-                UserMonitoringConfig.active == True  # noqa: E712
+                UserMonitoringConfig.active.is_(True)
             )
             .all()
         )
@@ -570,21 +677,38 @@ def get_active_monitoring_configs() -> List[UserMonitoringConfig]:
 
 def distribute_symbols_by_exchange(symbols: List[str]) -> dict:
     """
-    Distribuir símbolos para MEXC (única exchange)
+    Distribui símbolos validando contra MEXC
     Args:
-        symbols: Lista de todos os símbolos
+        symbols: Lista de símbolos (BTC, ETH, etc.)
     Returns:
         Dict com exchange -> lista de símbolos válidos
     """
-    # Validar símbolos contra database MEXC
-    valid_symbols = []
-    mexc_symbols = set(mexc_pairs_service.get_active_symbols("USDT"))
+    from src.database.connection import SessionLocal
+    from src.database.models import MEXCTradingPair
 
-    for symbol in symbols:
-        if symbol.upper() in mexc_symbols:
-            valid_symbols.append(symbol.upper())
-        else:
-            logger.warning(f"Símbolo {symbol} não encontrado na MEXC ou não é USDT")
+    valid_symbols = []
+
+    try:
+        with SessionLocal() as session:
+            for symbol in symbols:
+                base_asset = symbol.upper()
+
+                # Verificar se existe BTC/USDT ativo com spot trading
+                exists = session.query(MEXCTradingPair).filter(
+                    MEXCTradingPair.base_asset == base_asset,
+                    MEXCTradingPair.quote_asset == "USDT",
+                    MEXCTradingPair.is_active.is_(True),
+                    MEXCTradingPair.is_spot_trading_allowed.is_(True),
+                ).first()
+
+                if exists:
+                    valid_symbols.append(base_asset)
+                else:
+                    logger.warning(f"Símbolo {base_asset} não disponível na MEXC")
+
+    except Exception as e:
+        logger.error(f"Erro ao validar símbolos: {e}")
+        return {"mexc": []}
 
     logger.info(f"Símbolos válidos: {len(valid_symbols)}/{len(symbols)}")
     return {"mexc": valid_symbols}

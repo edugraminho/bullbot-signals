@@ -199,34 +199,5 @@ class MEXCPairsService:
             logger.error(f"❌ Erro ao salvar pares no banco: {e}")
             return {"inserted": 0, "updated": 0, "total": 0, "errors": 1}
 
-    def get_active_symbols(self, quote_asset: str = "USDT") -> List[str]:
-        """
-        Retorna lista de símbolos ativos - substitui CSV
-
-        Args:
-            quote_asset: Filtrar por moeda de cotação (padrão: USDT)
-
-        Returns:
-            Lista de símbolos (ex: ["BTC", "ETH", "SOL"])
-        """
-        try:
-            with SessionLocal() as session:
-                query = session.query(MEXCTradingPair.base_asset).filter(
-                    MEXCTradingPair.is_active == True,  # noqa: E712
-                    MEXCTradingPair.is_spot_trading_allowed == True,  # noqa: E712
-                    MEXCTradingPair.quote_asset == quote_asset,
-                )
-
-                symbols = [row[0] for row in query.all()]
-                logger.info(f"Retornados {len(symbols)} símbolos ativos")
-                return symbols
-
-        except Exception as e:
-            logger.error(f"❌ Erro ao buscar símbolos ativos: {e}")
-            return []
-
-
-
-
 # Instância global
 mexc_pairs_service = MEXCPairsService()

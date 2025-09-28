@@ -13,6 +13,9 @@
 - ✅ Gerenciamento via comandos Telegram
 - ✅ Múltiplas configurações por usuário
 - ✅ Filtros personalizados
+- ✅ Sistema MEXC-only com banco PostgreSQL
+- ✅ Sincronização automática de pares MEXC
+- ✅ Validação de símbolos contra `trading_coins`
 
 ### ✅ **Mantido (Essencial)**
 - ✅ Buscar sinais não processados

@@ -69,17 +69,21 @@ This is a **Clean Architecture** crypto trading signals application with strict 
 ### Key Services
 
 1. **RSI Service** (`src/core/services/rsi_service.py`): Main business logic for RSI analysis
-2. **Exchange Client**: MEXC API integration
-3. **Celery Tasks**: Background processing for monitoring and data collection
-4. **Trading Coins System**: Curated coin selection with automatic updates
+2. **MEXC Client** (`src/services/mexc_client.py`): MEXC API integration
+3. **MEXC Pairs Service** (`src/services/mexc_pairs_service.py`): Trading pairs management
+4. **Celery Tasks**: Background processing for monitoring and MEXC sync
+5. **Trading Coins System**: PostgreSQL-based real-time pair management
 
 ## Exchange Integration
 
-The system uses MEXC Exchange as the single data source:
+The system uses **MEXC as the single exchange**:
 
-- **MEXC**: Spot market data source (20 req/sec, no spot trading fees)
+- **MEXC**: Exclusive data source (20 req/sec limit, spot market)
+- **Database-backed**: All trading pairs stored in PostgreSQL `trading_coins` table
+- **Real-time sync**: Automatic synchronization every 5 minutes via Celery
+- **Smart validation**: Symbols validated against `base_asset/USDT` pairs with `is_spot_trading_allowed=true`
 
-The system uses custom RSI calculation based on OHLCV data rather than direct RSI endpoints.
+All analysis uses custom RSI calculation based on OHLCV data from MEXC API.
 
 ## Configuration
 
@@ -92,7 +96,7 @@ The system uses custom RSI calculation based on OHLCV data rather than direct RS
 
 1. **Dependency Injection**: Services depend on interfaces, not implementations
 2. **Async/Await**: All I/O operations are asynchronous
-3. **Error Handling**: Exchange-specific exception classes with fallback logic
+3. **Error Handling**: MEXC-specific exception classes with proper logging
 4. **Rate Limiting**: Built into exchange clients
 5. **Containerization**: 100% Docker-based development and deployment
 

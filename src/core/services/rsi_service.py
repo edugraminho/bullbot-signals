@@ -107,7 +107,7 @@ class RSIService:
 
             # Executar análise de confluência
             confluence_result = self.confluence_analyzer.analyze_confluence(
-                ohlcv_dict_data, rsi_data, symbol, interval
+                ohlcv_dict_data, rsi_data, symbol, interval, self.rsi_levels
             )
 
             logger.info(
