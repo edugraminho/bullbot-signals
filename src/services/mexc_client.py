@@ -89,6 +89,14 @@ class MEXCClient:
 
             data = response.json()
 
+            # Armazenar dados brutos da API para debug
+            raw_api_response = {
+                "symbol": symbol,
+                "interval": interval,
+                "response_data": data,
+                "timestamp": datetime.now().isoformat(),
+            }
+
             # MEXC retorna array de arrays com 6 elementos:
             # [timestamp, open, high, low, close, volume]
             ohlcv_data = []
@@ -125,11 +133,16 @@ class MEXCClient:
             logger.debug(
                 f"OHLCV obtido com sucesso: {len(ohlcv_data)} valores para {symbol}"
             )
+
+            # Anexar dados brutos aos dados processados para debug
+            if ohlcv_data:
+                ohlcv_data[0].raw_api_response = raw_api_response
+
             return ohlcv_data
 
         except httpx.HTTPError as e:
             # Log mais detalhado para erro 400 (Bad Request)
-            if hasattr(e, 'response') and e.response.status_code == 400:
+            if hasattr(e, "response") and e.response.status_code == 400:
                 error_msg = f"Erro 400 Bad Request ao buscar OHLCV para {symbol} {interval}: Símbolo ou timeframe pode não estar disponível na MEXC"
                 logger.warning(error_msg)  # Warning em vez de error para 400
             else:
@@ -179,6 +192,11 @@ class MEXCClient:
                 # Adicionar preço atual (último preço de fechamento)
                 rsi_data.current_price = ohlcv_data[-1].close
                 rsi_data.source = "mexc"
+
+                # Adicionar dados brutos da API para debug
+                if hasattr(ohlcv_data[0], "raw_api_response"):
+                    rsi_data.raw_api_response = ohlcv_data[0].raw_api_response
+
                 logger.info(f"RSI MEXC calculado para {symbol}: {rsi_data.value}")
                 logger.info(f"Preço atual MEXC: {rsi_data.current_price}")
                 return rsi_data
@@ -226,13 +244,17 @@ class MEXCClient:
             # Estruturar dados de mercado com parsing seguro usando funções utilitárias
             market_data = {
                 "symbol": symbol,
-                "current_price": safe_price(data.get("lastPrice")),  # Preços não podem ser negativos
+                "current_price": safe_price(
+                    data.get("lastPrice")
+                ),  # Preços não podem ser negativos
                 "open_price_24h": safe_price(data.get("openPrice")),
                 "high_price_24h": safe_price(data.get("highPrice")),
                 "low_price_24h": safe_price(data.get("lowPrice")),
                 "volume_24h": safe_float(data.get("volume")),  # Volume pode ser 0
                 "quote_volume_24h": safe_float(data.get("quoteVolume")),
-                "price_change_24h": safe_float(data.get("priceChange")),  # Pode ser negativo
+                "price_change_24h": safe_float(
+                    data.get("priceChange")
+                ),  # Pode ser negativo
                 "price_change_24h_pct": safe_float(data.get("priceChangePercent")),
                 "weighted_avg_price": safe_price(data.get("weightedAvgPrice")),
                 "prev_close_price": safe_price(data.get("prevClosePrice")),
@@ -242,10 +264,12 @@ class MEXCClient:
                 "close_time": safe_int(data.get("closeTime")),
                 "count": safe_int(data.get("count")),  # Número de trades
                 "timestamp": datetime.now(timezone.utc),
-                "source": "mexc"
+                "source": "mexc",
             }
 
-            logger.debug(f"Dados 24h obtidos para {symbol}: preço {market_data['current_price']}, volume {market_data['volume_24h']}")
+            logger.debug(
+                f"Dados 24h obtidos para {symbol}: preço {market_data['current_price']}, volume {market_data['volume_24h']}"
+            )
             return market_data
 
         except httpx.HTTPError as e:
@@ -278,10 +302,12 @@ class MEXCClient:
             closes = [float(item["close"]) for item in sorted_data[-20:]]
             avg_price = sum(closes) / len(closes)
             variance = sum((price - avg_price) ** 2 for price in closes) / len(closes)
-            volatility = (variance ** 0.5) / avg_price * 100  # % de volatilidade
+            volatility = (variance**0.5) / avg_price * 100  # % de volatilidade
 
             # Calcular range médio (high-low)
-            ranges = [float(item["high"]) - float(item["low"]) for item in sorted_data[-10:]]
+            ranges = [
+                float(item["high"]) - float(item["low"]) for item in sorted_data[-10:]
+            ]
             avg_range = sum(ranges) / len(ranges)
             current_range = float(latest["high"]) - float(latest["low"])
             range_ratio = current_range / avg_range if avg_range > 0 else 1
@@ -291,7 +317,9 @@ class MEXCClient:
             trend = "bullish" if recent_closes[-1] > recent_closes[0] else "bearish"
 
             # Calcular força do movimento
-            price_momentum = (closes[-1] - closes[-3]) / closes[-3] * 100 if closes[-3] > 0 else 0
+            price_momentum = (
+                (closes[-1] - closes[-3]) / closes[-3] * 100 if closes[-3] > 0 else 0
+            )
 
             context = {
                 "volatility_pct": round(volatility, 2),
@@ -300,8 +328,14 @@ class MEXCClient:
                 "price_momentum_pct": round(price_momentum, 2),
                 "is_high_volatility": volatility > 5.0,
                 "is_expanding_range": range_ratio > 1.2,
-                "avg_volume_10": sum(float(item["volume"]) for item in sorted_data[-10:]) / 10,
-                "volume_ratio": float(latest["volume"]) / (sum(float(item["volume"]) for item in sorted_data[-10:]) / 10) if sorted_data else 1
+                "avg_volume_10": sum(
+                    float(item["volume"]) for item in sorted_data[-10:]
+                )
+                / 10,
+                "volume_ratio": float(latest["volume"])
+                / (sum(float(item["volume"]) for item in sorted_data[-10:]) / 10)
+                if sorted_data
+                else 1,
             }
 
             logger.debug(f"Contexto de mercado calculado para {symbol}: {context}")

@@ -4,6 +4,7 @@ Tasks principais de monitoramento RSI
 
 import asyncio
 import time
+from datetime import datetime
 from typing import List
 
 from src.core.services.rsi_service import RSIService
@@ -502,28 +503,19 @@ def process_single_symbol(
                     else float(analysis.current_price)
                 )
 
-                # Helper para converter Decimais em floats recursivamente
+                # Helper para converter tudo para JSON-safe
+                import json
+
                 def convert_decimals_to_float(obj):
-                    """Converte objetos Decimal para float recursivamente em dicts/lists"""
-                    if isinstance(obj, dict):
-                        return {k: convert_decimals_to_float(v) for k, v in obj.items()}
-                    elif isinstance(obj, list):
-                        return [convert_decimals_to_float(item) for item in obj]
-                    elif hasattr(obj, "__dict__"):  # Objetos com atributos
-                        return convert_decimals_to_float(obj.__dict__)
-                    elif str(type(obj)).find("Decimal") != -1:  # Detect Decimal objects
-                        return float(obj)
-                    else:
-                        return obj
+                    """Converte para JSON-safe usando json.dumps/loads"""
+                    return json.loads(json.dumps(obj, default=str))
 
                 # Criar registro completo do sinal
                 signal_record = SignalHistory(
                     symbol=symbol,
                     signal_type=analysis.signal.signal_type.value,
                     strength=analysis.signal.strength.value,
-                    # ✅ CORREÇÃO CRÍTICA: Usar preço real da moeda
                     price=float(current_price),
-                    # Novos campos técnicos
                     rsi_value=float(analysis.signal.rsi_value),
                     entry_price=trading_recommendations.get("entry_price"),
                     stop_loss=trading_recommendations.get("stop_loss"),
@@ -532,7 +524,6 @@ def process_single_symbol(
                     timeframe=rsi_timeframe,
                     source=exchange,
                     message=analysis.signal.message,
-                    # Dados de mercado reais da MEXC
                     volume_24h=market_data_24h.get("volume_24h")
                     if market_data_24h
                     else None,
@@ -548,9 +539,7 @@ def process_single_symbol(
                     quote_volume_24h=market_data_24h.get("quote_volume_24h")
                     if market_data_24h
                     else None,
-                    # Contexto de mercado (converter Decimais para floats)
                     market_context=convert_decimals_to_float(market_context),
-                    # Indicadores estruturados (converter Decimais para floats)
                     indicator_type=["RSI", "EMA", "MACD", "Volume", "Confluence"],
                     indicator_data=convert_decimals_to_float(enhanced_indicator_data),
                     indicator_config=convert_decimals_to_float(
@@ -569,7 +558,6 @@ def process_single_symbol(
                             },
                         }
                     ),
-                    # Scores melhorados
                     confidence_score=round(confidence_score, 1),
                     combined_score=float(analysis.confluence_score.total_score),
                     max_possible_score=analysis.confluence_score.max_possible_score,
@@ -580,6 +568,29 @@ def process_single_symbol(
                     # Controle de processamento
                     processed=False,  # Aguardando processamento pelo bot do Telegram
                     processing_time_ms=int((time.time() - symbol_start_time) * 1000),
+                    # Debug - dados BRUTOS da API MEXC para auditoria
+                    raw_payload=convert_decimals_to_float(
+                        {
+                            "mexc_api_raw_response": getattr(
+                                analysis.signal, "raw_api_response", None
+                            ),
+                            "rsi_data_raw": getattr(analysis.signal, "__dict__", {}),
+                            "rsi_calculation": {
+                                "rsi_value": float(analysis.signal.rsi_value),
+                                "rsi_period": rsi_window,
+                                "rsi_source": exchange,
+                            },
+                            "signal_metadata": {
+                                "symbol": symbol,
+                                "timeframe": rsi_timeframe,
+                                "timestamp": datetime.now().isoformat(),
+                                "processing_time_ms": int(
+                                    (time.time() - symbol_start_time) * 1000
+                                ),
+                                "exchange": exchange,
+                            },
+                        }
+                    ),
                 )
 
                 db.add(signal_record)

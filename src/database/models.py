@@ -225,6 +225,18 @@ class SignalHistory(Base):
     )  # Tempo de processamento do sinal
     signal_quality = Column(String(20), nullable=True)  # EXCELLENT, GOOD, FAIR, POOR
 
+    # Debug e monitoramento - dados originais para auditoria
+    raw_payload = Column(JSON, nullable=True)  # Dados brutos originais da API/cálculos
+    # Exemplo raw_payload: {
+    #     "ohlcv_data": [...],  # Dados OHLCV originais da MEXC
+    #     "rsi_calculation": {...},  # Dados intermediários do cálculo RSI
+    #     "market_data_24h": {...},  # Dados 24h da MEXC
+    #     "confluence_details": {...},  # Detalhes completos da confluência
+    #     "api_response_times": {...},  # Tempos de resposta das APIs
+    #     "timestamp": "2024-01-15T10:30:15Z",
+    #     "debug_info": {...}  # Informações adicionais para debug
+    # }
+
 
 class UserMonitoringConfig(Base):
     """Configurações de monitoramento de sinais por usuário com dados do Telegram"""
