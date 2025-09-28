@@ -110,9 +110,9 @@ class Settings(BaseSettings):
     celery_tasks_per_worker: int = 1  # Acima de 1 é arriscado para T3-micro
     celery_task_acknowledge_late: bool = True  # Confirmar task só após conclusão
 
-    # Configurações de Timeout (segundos)
-    celery_task_warning_timeout: int = 600  # 10 min - aviso de timeout
-    celery_task_force_kill_timeout: int = 900  # 15 min - força encerramento
+    # Configurações de Timeout (segundos) - Aumentado para suportar 1700+ moedas
+    celery_task_warning_timeout: int = 3000  # 50 min - aviso de timeout
+    celery_task_force_kill_timeout: int = 3600  # 60 min - força encerramento
 
     # Configurações de Memória
     celery_max_memory_per_child: int = 400000  # 400MB por processo filho (KB)
