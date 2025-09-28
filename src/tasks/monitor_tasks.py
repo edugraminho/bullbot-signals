@@ -37,7 +37,7 @@ def sync_mexc_pairs(self):
     Task para sincronizar pares de trading da MEXC - executa a cada 5 minutos
     """
     try:
-        logger.info("🔄 Iniciando sincronização de pares MEXC...")
+        logger.info("Iniciando sincronização de pares MEXC...")
 
         # Executar sincronização
         loop = asyncio.new_event_loop()
@@ -54,9 +54,9 @@ def sync_mexc_pairs(self):
 
                 return {
                     "status": "success",
-                    "inserted": result['inserted'],
-                    "updated": result['updated'],
-                    "total": result['total'],
+                    "inserted": result["inserted"],
+                    "updated": result["updated"],
+                    "total": result["total"],
                     "message": f"MEXC sincronizada: {result['total']} pares",
                 }
             else:
@@ -211,7 +211,7 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
         # Obter timeframes ativos das configurações
         active_timeframes = get_active_timeframes()
 
-        # Processar cada combinação símbolo+timeframe
+        # Processar cada combinação símbolo+timeframe com rate limiting
         results = []
         successful = 0
         filtered = 0
@@ -220,8 +220,33 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
         total_combinations = len(symbols) * len(active_timeframes)
         processed_count = 0
 
-        for symbol in symbols:
-            for timeframe in active_timeframes:
+        # Configuração de rate limiting para MEXC (20 req/sec)
+        BATCH_SIZE = 15  # Processar 15 requests por lote
+        BATCH_DELAY = 1.0  # Aguardar 1 segundo entre lotes
+
+        # Criar lista de todas as combinações
+        all_combinations = [
+            (symbol, timeframe) for symbol in symbols for timeframe in active_timeframes
+        ]
+
+        logger.info(
+            f"Processando {total_combinations} combinações em lotes de {BATCH_SIZE} (rate limiting)"
+        )
+
+        # Tempo inicial para cálculo total
+        processing_start_time = time.time()
+
+        # Processar em lotes para respeitar rate limit
+        for i in range(0, len(all_combinations), BATCH_SIZE):
+            batch = all_combinations[i : i + BATCH_SIZE]
+            batch_start_time = time.time()
+
+            logger.debug(
+                f"Processando lote {i // BATCH_SIZE + 1}: {len(batch)} combinações"
+            )
+
+            # Processar lote atual
+            for symbol, timeframe in batch:
                 processed_count += 1
                 symbol_start_time = time.time()
 
@@ -245,22 +270,31 @@ def process_symbol_batch(self, exchange: str, symbols: List[str]):
 
                 results.append(result)
 
-                # Log de progresso a cada 20 combinações ou no final
-                if processed_count % 20 == 0 or processed_count == total_combinations:
-                    symbol_duration = time.time() - symbol_start_time
-                    logger.info(
-                        f"{exchange}: {processed_count}/{total_combinations} combinações processadas "
-                        f"({symbol_duration:.2f}s/combinação)"
-                    )
+            # Log de progresso a cada lote
+            batch_duration = time.time() - batch_start_time
+            logger.info(
+                f"{exchange}: Lote {i // BATCH_SIZE + 1} concluído - {processed_count}/{total_combinations} combinações "
+                f"({batch_duration:.2f}s/lote)"
+            )
 
-        batch_duration = time.time() - batch_start_time
+            # Rate limiting: aguardar entre lotes (exceto no último)
+            if i + BATCH_SIZE < len(all_combinations):
+                # Se o lote foi processado muito rápido, aguardar para respeitar rate limit
+                if batch_duration < BATCH_DELAY:
+                    sleep_time = BATCH_DELAY - batch_duration
+                    logger.debug(
+                        f"Rate limiting: aguardando {sleep_time:.2f}s antes do próximo lote"
+                    )
+                    time.sleep(sleep_time)
+
+        total_duration = time.time() - processing_start_time
         avg_time_per_combination = (
-            batch_duration / total_combinations if total_combinations else 0
+            total_duration / total_combinations if total_combinations else 0
         )
 
         logger.info(
             f"Batch {exchange} concluído: {successful}/{total_combinations} sinais detectados "
-            f"({batch_duration:.2f}s total, {avg_time_per_combination:.2f}s/combinação)"
+            f"({total_duration:.2f}s total, {avg_time_per_combination:.2f}s/combinação)"
         )
 
         return {
@@ -374,7 +408,9 @@ def process_single_symbol(
             try:
                 # Imports necessários para dados completos
                 from src.core.services.signal_data_builder import SignalDataBuilder
-                from src.core.services.trading_recommendations import TradingRecommendations
+                from src.core.services.trading_recommendations import (
+                    TradingRecommendations,
+                )
                 from src.services.mexc_client import MEXCClient
 
                 market_data_24h = None
@@ -385,6 +421,7 @@ def process_single_symbol(
                 asyncio.set_event_loop(market_loop)
 
                 try:
+
                     async def get_market_data():
                         async with MEXCClient() as mexc_client:
                             # Buscar dados 24h reais da MEXC
@@ -393,7 +430,9 @@ def process_single_symbol(
                             # Calcular contexto de mercado
                             context = {}
                             try:
-                                ohlcv_context = await mexc_client.get_ohlcv(symbol, rsi_timeframe, 50)
+                                ohlcv_context = await mexc_client.get_ohlcv(
+                                    symbol, rsi_timeframe, 50
+                                )
                                 if ohlcv_context:
                                     ohlcv_dict_context = [
                                         {
@@ -406,25 +445,33 @@ def process_single_symbol(
                                         }
                                         for item in ohlcv_context
                                     ]
-                                    context = await mexc_client.get_market_context(symbol, ohlcv_dict_context)
+                                    context = await mexc_client.get_market_context(
+                                        symbol, ohlcv_dict_context
+                                    )
                             except Exception as context_error:
-                                logger.warning(f"Não foi possível obter contexto de mercado: {context_error}")
+                                logger.warning(
+                                    f"Não foi possível obter contexto de mercado: {context_error}"
+                                )
 
                             return market_data, context
 
-                    market_data_24h, market_context = market_loop.run_until_complete(get_market_data())
+                    market_data_24h, market_context = market_loop.run_until_complete(
+                        get_market_data()
+                    )
 
                 finally:
                     market_loop.close()
 
                 # Calcular recomendações de trading
-                trading_recommendations = TradingRecommendations.calculate_recommendations(
-                    signal_type=analysis.signal.signal_type,
-                    signal_strength=analysis.signal.strength,
-                    current_price=analysis.current_price,
-                    confluence_details=analysis.confluence_score.details,
-                    timeframe=rsi_timeframe,
-                    market_context=market_context
+                trading_recommendations = (
+                    TradingRecommendations.calculate_recommendations(
+                        signal_type=analysis.signal.signal_type,
+                        signal_strength=analysis.signal.strength,
+                        current_price=analysis.current_price,
+                        confluence_details=analysis.confluence_score.details,
+                        timeframe=rsi_timeframe,
+                        market_context=market_context,
+                    )
                 )
 
                 # Construir dados estruturados completos
@@ -432,16 +479,28 @@ def process_single_symbol(
                     confluence_result=analysis,
                     market_data_24h=market_data_24h,
                     market_context=market_context,
-                    trading_recommendations=trading_recommendations
+                    trading_recommendations=trading_recommendations,
                 )
 
                 # Calcular score de confiança como % de confluência
-                confidence_score = (analysis.confluence_score.total_score / analysis.confluence_score.max_possible_score) * 100 if analysis.confluence_score.max_possible_score > 0 else 0
+                confidence_score = (
+                    (
+                        analysis.confluence_score.total_score
+                        / analysis.confluence_score.max_possible_score
+                    )
+                    * 100
+                    if analysis.confluence_score.max_possible_score > 0
+                    else 0
+                )
 
                 db = SessionLocal()
 
                 # ✅ CORRIGIDO: Usar preço real da moeda, não RSI value
-                current_price = market_data_24h.get("current_price") if market_data_24h else float(analysis.current_price)
+                current_price = (
+                    market_data_24h.get("current_price")
+                    if market_data_24h
+                    else float(analysis.current_price)
+                )
 
                 # Helper para converter Decimais em floats recursivamente
                 def convert_decimals_to_float(obj):
@@ -450,9 +509,9 @@ def process_single_symbol(
                         return {k: convert_decimals_to_float(v) for k, v in obj.items()}
                     elif isinstance(obj, list):
                         return [convert_decimals_to_float(item) for item in obj]
-                    elif hasattr(obj, '__dict__'):  # Objetos com atributos
+                    elif hasattr(obj, "__dict__"):  # Objetos com atributos
                         return convert_decimals_to_float(obj.__dict__)
-                    elif str(type(obj)).find('Decimal') != -1:  # Detect Decimal objects
+                    elif str(type(obj)).find("Decimal") != -1:  # Detect Decimal objects
                         return float(obj)
                     else:
                         return obj
@@ -462,53 +521,62 @@ def process_single_symbol(
                     symbol=symbol,
                     signal_type=analysis.signal.signal_type.value,
                     strength=analysis.signal.strength.value,
-
                     # ✅ CORREÇÃO CRÍTICA: Usar preço real da moeda
                     price=float(current_price),
-
                     # Novos campos técnicos
                     rsi_value=float(analysis.signal.rsi_value),
                     entry_price=trading_recommendations.get("entry_price"),
                     stop_loss=trading_recommendations.get("stop_loss"),
                     take_profit=trading_recommendations.get("take_profit"),
                     risk_reward_ratio=trading_recommendations.get("risk_reward_ratio"),
-
                     timeframe=rsi_timeframe,
                     source=exchange,
                     message=analysis.signal.message,
-
                     # Dados de mercado reais da MEXC
-                    volume_24h=market_data_24h.get("volume_24h") if market_data_24h else None,
-                    price_change_24h=market_data_24h.get("price_change_24h_pct") if market_data_24h else None,
-                    high_24h=market_data_24h.get("high_price_24h") if market_data_24h else None,
-                    low_24h=market_data_24h.get("low_price_24h") if market_data_24h else None,
-                    quote_volume_24h=market_data_24h.get("quote_volume_24h") if market_data_24h else None,
-
+                    volume_24h=market_data_24h.get("volume_24h")
+                    if market_data_24h
+                    else None,
+                    price_change_24h=market_data_24h.get("price_change_24h_pct")
+                    if market_data_24h
+                    else None,
+                    high_24h=market_data_24h.get("high_price_24h")
+                    if market_data_24h
+                    else None,
+                    low_24h=market_data_24h.get("low_price_24h")
+                    if market_data_24h
+                    else None,
+                    quote_volume_24h=market_data_24h.get("quote_volume_24h")
+                    if market_data_24h
+                    else None,
                     # Contexto de mercado (converter Decimais para floats)
                     market_context=convert_decimals_to_float(market_context),
-
                     # Indicadores estruturados (converter Decimais para floats)
                     indicator_type=["RSI", "EMA", "MACD", "Volume", "Confluence"],
                     indicator_data=convert_decimals_to_float(enhanced_indicator_data),
-                    indicator_config=convert_decimals_to_float({
-                        "rsi_window": rsi_window,
-                        "timeframe": rsi_timeframe,
-                        "exchange": exchange,
-                        "confluence_enabled": True,
-                        "custom_rsi_levels": {
-                            "oversold": getattr(rsi_service.rsi_levels, 'oversold', 20),
-                            "overbought": getattr(rsi_service.rsi_levels, 'overbought', 80)
+                    indicator_config=convert_decimals_to_float(
+                        {
+                            "rsi_window": rsi_window,
+                            "timeframe": rsi_timeframe,
+                            "exchange": exchange,
+                            "confluence_enabled": True,
+                            "custom_rsi_levels": {
+                                "oversold": getattr(
+                                    rsi_service.rsi_levels, "oversold", 20
+                                ),
+                                "overbought": getattr(
+                                    rsi_service.rsi_levels, "overbought", 80
+                                ),
+                            },
                         }
-                    }),
-
+                    ),
                     # Scores melhorados
                     confidence_score=round(confidence_score, 1),
                     combined_score=float(analysis.confluence_score.total_score),
                     max_possible_score=analysis.confluence_score.max_possible_score,
-
                     # Qualidade do sinal
-                    signal_quality=trading_recommendations.get("signal_quality", "FAIR"),
-
+                    signal_quality=trading_recommendations.get(
+                        "signal_quality", "FAIR"
+                    ),
                     # Controle de processamento
                     processed=False,  # Aguardando processamento pelo bot do Telegram
                     processing_time_ms=int((time.time() - symbol_start_time) * 1000),
@@ -573,9 +641,7 @@ def get_active_symbols() -> List[str]:
         # Buscar TODAS as configurações ativas (não apenas a primeira)
         active_configs = (
             db.query(UserMonitoringConfig)
-            .filter(
-                UserMonitoringConfig.active.is_(True)
-            )
+            .filter(UserMonitoringConfig.active.is_(True))
             .all()
         )
 
@@ -590,23 +656,84 @@ def get_active_symbols() -> List[str]:
 
         for config in active_configs:
             if config.symbols and len(config.symbols) > 0:
-                all_symbols.update(config.symbols)
-                config_count += 1
+                # Filtrar strings vazias ou apenas com espaços
+                valid_symbols = [s.strip() for s in config.symbols if s and s.strip()]
+                if valid_symbols:
+                    all_symbols.update(valid_symbols)
+                    config_count += 1
 
         symbols = list(all_symbols)
 
         if len(symbols) == 0:
             logger.warning("⚠️ Nenhum símbolo encontrado nas configurações ativas")
+            logger.info(
+                "Usando fallback: todas as moedas da trading_coins com spot ativo"
+            )
+            # Buscar todas as moedas com spot trading ativo da MEXC
+            mexc_symbols = get_all_mexc_spot_symbols(db)
+            db.close()
+            return mexc_symbols
 
         db.close()
         return symbols
 
     except Exception as e:
         logger.error(f"❌ Erro ao agregar símbolos das configurações: {e}")
-        # Fallback para lista padrão em caso de erro
-        fallback_symbols = ["BTC", "ETH", "SOL", "BNB", "ADA"]
-        logger.info(f"Usando {len(fallback_symbols)} símbolos do fallback padrão")
-        return fallback_symbols
+        db.close()
+        # Em caso de erro, usar fallback da trading_coins
+        logger.info("Tentando fallback: moedas da trading_coins com spot ativo")
+        db_fallback = SessionLocal()
+        mexc_symbols = get_all_mexc_spot_symbols(db_fallback)
+        db_fallback.close()
+        return mexc_symbols
+
+
+def get_all_mexc_spot_symbols(db_session) -> List[str]:
+    """
+    Busca todas as moedas com spot trading ativo na MEXC
+
+    Args:
+        db_session: Sessão ativa do banco de dados
+
+    Returns:
+        Lista de símbolos base (ex: ['BTC', 'ETH', 'SOL']) com spot trading ativo
+    """
+    try:
+        from src.database.models import MEXCTradingPair
+
+        # Buscar todas as moedas com:
+        # - quote_asset = 'USDT' (pares em USDT)
+        # - is_active = true (ativo na MEXC)
+        # - is_spot_trading_allowed = true (spot trading habilitado)
+        mexc_pairs = (
+            db_session.query(MEXCTradingPair.base_asset)
+            .filter(
+                MEXCTradingPair.quote_asset == "USDT",
+                MEXCTradingPair.is_active.is_(True),
+                MEXCTradingPair.is_spot_trading_allowed.is_(True),
+            )
+            .distinct()
+            .all()
+        )
+
+        # Converter de lista de tuplas para lista de strings
+        symbols = [pair[0] for pair in mexc_pairs]
+
+        # Ordenar alfabeticamente para consistência
+        symbols.sort()
+
+        logger.info(
+            f"✅ Encontradas {len(symbols)} moedas com spot trading ativo na MEXC"
+        )
+        logger.debug(
+            f"Símbolos MEXC: {symbols[:10]}{'...' if len(symbols) > 10 else ''}"
+        )
+
+        return symbols
+
+    except Exception as e:
+        logger.error(f"❌ Erro ao buscar símbolos MEXC: {e}")
+        return []
 
 
 def get_active_timeframes() -> List[str]:
@@ -616,9 +743,7 @@ def get_active_timeframes() -> List[str]:
         # Buscar TODAS as configurações ativas
         active_configs = (
             db.query(UserMonitoringConfig)
-            .filter(
-                UserMonitoringConfig.active.is_(True)
-            )
+            .filter(UserMonitoringConfig.active.is_(True))
             .all()
         )
 
@@ -663,9 +788,7 @@ def get_active_monitoring_configs() -> List[UserMonitoringConfig]:
         db = SessionLocal()
         configs = (
             db.query(UserMonitoringConfig)
-            .filter(
-                UserMonitoringConfig.active.is_(True)
-            )
+            .filter(UserMonitoringConfig.active.is_(True))
             .all()
         )
         db.close()
@@ -694,12 +817,16 @@ def distribute_symbols_by_exchange(symbols: List[str]) -> dict:
                 base_asset = symbol.upper()
 
                 # Verificar se existe BTC/USDT ativo com spot trading
-                exists = session.query(MEXCTradingPair).filter(
-                    MEXCTradingPair.base_asset == base_asset,
-                    MEXCTradingPair.quote_asset == "USDT",
-                    MEXCTradingPair.is_active.is_(True),
-                    MEXCTradingPair.is_spot_trading_allowed.is_(True),
-                ).first()
+                exists = (
+                    session.query(MEXCTradingPair)
+                    .filter(
+                        MEXCTradingPair.base_asset == base_asset,
+                        MEXCTradingPair.quote_asset == "USDT",
+                        MEXCTradingPair.is_active.is_(True),
+                        MEXCTradingPair.is_spot_trading_allowed.is_(True),
+                    )
+                    .first()
+                )
 
                 if exists:
                     valid_symbols.append(base_asset)
@@ -712,8 +839,6 @@ def distribute_symbols_by_exchange(symbols: List[str]) -> dict:
 
     logger.info(f"Símbolos válidos: {len(valid_symbols)}/{len(symbols)}")
     return {"mexc": valid_symbols}
-
-
 
 
 @celery_app.task
