@@ -134,11 +134,8 @@ class MEXCClient:
                 f"OHLCV obtido com sucesso: {len(ohlcv_data)} valores para {symbol}"
             )
 
-            # Anexar dados brutos aos dados processados para debug
-            if ohlcv_data:
-                ohlcv_data[0].raw_api_response = raw_api_response
-
-            return ohlcv_data
+            # Retornar dados com raw_api_response separado
+            return ohlcv_data, raw_api_response
 
         except httpx.HTTPError as e:
             # Log mais detalhado para erro 400 (Bad Request)
@@ -165,7 +162,7 @@ class MEXCClient:
             # Buscar dados suficientes para calcular RSI usando configuração
             total_periods = period + 100
             logger.debug(f"Buscando RSI MEXC: {symbol} {interval}")
-            ohlcv_data = await self.get_ohlcv(symbol, interval, total_periods)
+            ohlcv_data, raw_api_response = await self.get_ohlcv(symbol, interval, total_periods)
 
             if not ohlcv_data:
                 return None
@@ -194,8 +191,7 @@ class MEXCClient:
                 rsi_data.source = "mexc"
 
                 # Adicionar dados brutos da API para debug
-                if hasattr(ohlcv_data[0], "raw_api_response"):
-                    rsi_data.raw_api_response = ohlcv_data[0].raw_api_response
+                rsi_data.raw_api_response = raw_api_response
 
                 logger.info(f"RSI MEXC calculado para {symbol}: {rsi_data.value}")
                 logger.info(f"Preço atual MEXC: {rsi_data.current_price}")

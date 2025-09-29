@@ -431,7 +431,7 @@ def process_single_symbol(
                             # Calcular contexto de mercado
                             context = {}
                             try:
-                                ohlcv_context = await mexc_client.get_ohlcv(
+                                ohlcv_context, raw_api_response = await mexc_client.get_ohlcv(
                                     symbol, rsi_timeframe, 50
                                 )
                                 if ohlcv_context:
@@ -454,9 +454,9 @@ def process_single_symbol(
                                     f"Não foi possível obter contexto de mercado: {context_error}"
                                 )
 
-                            return market_data, context
+                            return market_data, context, raw_api_response
 
-                    market_data_24h, market_context = market_loop.run_until_complete(
+                    market_data_24h, market_context, ohlcv_raw_api_response = market_loop.run_until_complete(
                         get_market_data()
                     )
 
@@ -574,6 +574,7 @@ def process_single_symbol(
                             "mexc_api_raw_response": getattr(
                                 analysis.signal, "raw_api_response", None
                             ),
+                            "mexc_ohlcv_raw_response": ohlcv_raw_api_response,
                             "rsi_data_raw": getattr(analysis.signal, "__dict__", {}),
                             "rsi_calculation": {
                                 "rsi_value": float(analysis.signal.rsi_value),

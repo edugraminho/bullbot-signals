@@ -4,6 +4,7 @@ Modelos de dados para criptomoedas e indicadores
 
 from datetime import datetime
 from decimal import Decimal
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -18,6 +19,9 @@ class RSIData(BaseModel):
     timespan: str = Field(..., description="Timeframe: minute, hour, day")
     window: int = Field(14, description="RSI calculation window")
     source: str = Field(..., description="Data source: polygon, calculated")
+    raw_api_response: Optional[dict] = Field(
+        None, description="Raw API response for debugging"
+    )
 
 
 class OHLCVData(BaseModel):
@@ -80,5 +84,3 @@ class VolumeData(BaseModel):
     current_price: Decimal = Field(..., description="Current price of the asset")
     timespan: str = Field(..., description="Timeframe: 15m, 1h, 4h, 1d")
     source: str = Field("calculated", description="Data source")
-
-

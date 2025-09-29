@@ -138,7 +138,8 @@ class RSIService:
         """
         try:
             async with MEXCClient() as client:
-                return await client.get_ohlcv(symbol, interval, limit)
+                ohlcv_data, _ = await client.get_ohlcv(symbol, interval, limit)
+                return ohlcv_data
 
         except Exception as e:
             logger.error(f"❌ Erro ao obter dados OHLCV da MEXC para {symbol}: {e}")
