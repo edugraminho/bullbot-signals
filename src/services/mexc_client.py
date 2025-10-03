@@ -28,16 +28,28 @@ class MEXCClient:
     def __init__(self, base_url: str = "https://api.mexc.com"):
         self.base_url = base_url
         self.session: Optional[httpx.AsyncClient] = None
+        self._should_close = False
+
+    async def _ensure_session(self):
+        """Garante que a sessão está inicializada"""
+        if self.session is None:
+            self.session = httpx.AsyncClient(timeout=30.0)
+            self._should_close = True
+
+    async def close(self):
+        """Fecha a sessão HTTP"""
+        if self.session and self._should_close:
+            await self.session.aclose()
+            self.session = None
 
     async def __aenter__(self):
         """Context manager entry"""
-        self.session = httpx.AsyncClient(timeout=30.0)
+        await self._ensure_session()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit"""
-        if self.session:
-            await self.session.aclose()
+        await self.close()
 
     async def get_ohlcv(
         self,
@@ -83,6 +95,7 @@ class MEXCClient:
             if to_timestamp:
                 params["end"] = to_timestamp
 
+            await self._ensure_session()
             logger.debug(f"Buscando OHLCV para {symbol} com intervalo {interval}")
             response = await self.session.get(url, params=params)
             response.raise_for_status()
@@ -227,6 +240,7 @@ class MEXCClient:
             url = f"{self.base_url}/api/v3/ticker/24hr"
             params = {"symbol": symbol}
 
+            await self._ensure_session()
             logger.debug(f"Buscando dados 24h para {symbol}")
             response = await self.session.get(url, params=params)
             response.raise_for_status()

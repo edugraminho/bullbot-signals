@@ -716,13 +716,12 @@ def get_all_mexc_spot_symbols(db_session) -> List[str]:
         # Buscar todas as moedas com:
         # - quote_asset = 'USDT' (pares em USDT)
         # - is_active = true (ativo na MEXC)
-        # - is_spot_trading_allowed = true (spot trading habilitado)
+        # Nota: is_spot_trading_allowed removido pois BTC/ETH têm false mas dados disponíveis
         mexc_pairs = (
             db_session.query(MEXCTradingPair.base_asset)
             .filter(
                 MEXCTradingPair.quote_asset == "USDT",
                 MEXCTradingPair.is_active.is_(True),
-                MEXCTradingPair.is_spot_trading_allowed.is_(True),
             )
             .distinct()
             .all()
@@ -828,14 +827,14 @@ def distribute_symbols_by_exchange(symbols: List[str]) -> dict:
             for symbol in symbols:
                 base_asset = symbol.upper()
 
-                # Verificar se existe BTC/USDT ativo com spot trading
+                # Verificar se existe BTC/USDT ativo na MEXC
+                # Nota: is_spot_trading_allowed removido pois BTC/ETH têm false mas dados disponíveis
                 exists = (
                     session.query(MEXCTradingPair)
                     .filter(
                         MEXCTradingPair.base_asset == base_asset,
                         MEXCTradingPair.quote_asset == "USDT",
                         MEXCTradingPair.is_active.is_(True),
-                        MEXCTradingPair.is_spot_trading_allowed.is_(True),
                     )
                     .first()
                 )

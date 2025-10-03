@@ -98,7 +98,7 @@ class Settings(BaseSettings):
     """
 
     # Intervalos e Frequências
-    mexc_sync_interval_seconds: int = 300  # Sincronização MEXC a cada 5 minutos
+    mexc_sync_interval_seconds: int = 86400  # Sincronização MEXC a cada 24 horas
     signal_monitoring_interval_seconds: int = 300  # Monitoramento de sinais a cada 5 minutos
 
     # Configurações de Timezone
