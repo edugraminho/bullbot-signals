@@ -6,9 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **CRITICAL: All Python commands must be executed inside Docker containers**
 
-- Use `docker-compose exec app <command>` for all Python operations
+- Use `docker-compose exec celery_worker <command>` for Python operations
 - Never run Python commands directly on the host system
-- The application runs at port 8088 (mapped from container port 8000)
+- **No API/web server** - system runs only via Celery workers
 - Database runs on port 5438 (mapped from container port 5432)
 
 ### Essential Commands
@@ -18,17 +18,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 docker-compose up -d
 
 # Execute Python commands (always use this pattern)
-docker-compose exec app python -c "from src.api.main import app; print('App loaded')"
+docker-compose exec celery_worker python -c "from src.tasks.celery_app import celery_app; print('Celery loaded')"
 
 # Run tests
-docker-compose exec app pytest
+docker-compose exec celery_worker pytest
 
 # Code formatting and linting
-docker-compose exec app ruff format .
-docker-compose exec app ruff check .
+docker-compose exec celery_worker ruff format .
+docker-compose exec celery_worker ruff check .
 
-# Check logs
-docker-compose logs -f app
+# Check worker logs
+docker-compose logs -f celery_worker
+docker-compose logs -f celery_beat
+
+# Restart workers (after code changes)
+docker-compose restart celery_worker celery_beat
 
 # Stop services
 docker-compose down
@@ -36,42 +40,35 @@ docker-compose down
 # Access database shell
 docker-compose exec db psql -U postgres -d bullbot_signals
 
-# Celery monitoring
-docker-compose logs -f celery_worker
-docker-compose logs -f celery_beat
-
 ```
 
 ## Architecture Overview
 
-This is a **Clean Architecture** crypto trading signals application with strict layer separation:
+This is a **Celery-based** crypto trading signals application focused on background processing:
 
 ### Core Layer (`src/core/`)
 - **Models**: Business entities (`crypto.py`, `signals.py`)
-- **Services**: Business logic (`rsi_service.py`, `rsi_calculator.py`, `signal_filter.py`)
+- **Services**: Business logic (`rsi_service.py`, calculators, filters, analyzers)
 - Contains pure business logic with no external dependencies
 
-### Adapters Layer (`src/adapters/`)
-- **External APIs**: Exchange client (`mexc_client.py`)
-- Implements interfaces defined in core layer
-- Handles external system integration
-
-### API Layer (`src/api/`)
-- **FastAPI application**: HTTP interface (`main.py`)
-- **Routes**: Endpoint definitions (`routes/` directory)
-- **Schemas**: Request/response DTOs (`schemas/` directory)
+### Services Layer (`src/services/`)
+- **MEXC Client**: Exchange API integration (`mexc_client.py`)
+- **MEXC Pairs Service**: Trading pairs management (`mexc_pairs_service.py`)
 
 ### Infrastructure
 - **Database**: SQLAlchemy models and connection (`src/database/`)
-- **Tasks**: Celery configuration and async tasks (`src/tasks/`)
+- **Tasks**: Celery workers - ONLY entry point (`src/tasks/`)
 - **Utils**: Configuration, logging, utilities (`src/utils/`)
 
-### Key Services
+### Key Components
 
-1. **RSI Service** (`src/core/services/rsi_service.py`): Main business logic for RSI analysis
-2. **MEXC Client** (`src/services/mexc_client.py`): MEXC API integration
-3. **MEXC Pairs Service** (`src/services/mexc_pairs_service.py`): Trading pairs management
-4. **Celery Tasks**: Background processing for monitoring and MEXC sync
+1. **Celery Workers** (ONLY entry point - no API):
+   - `sync_mexc_pairs`: Syncs trading pairs from MEXC every 24h
+   - `monitor_rsi_signals`: Detects and saves RSI signals every 5min
+
+2. **RSI Service** (`src/core/services/rsi_service.py`): Main business logic for RSI analysis
+3. **MEXC Client** (`src/services/mexc_client.py`): MEXC API integration
+4. **MEXC Pairs Service** (`src/services/mexc_pairs_service.py`): Trading pairs management
 5. **Trading Coins System**: PostgreSQL-based real-time pair management
 
 ## Exchange Integration
@@ -117,17 +114,17 @@ All analysis uses custom RSI calculation based on OHLCV data from MEXC API.
 
 ## Common Development Tasks
 
-### Adding New Exchange
-1. Create client in `src/adapters/`
-2. Implement exchange interface
-3. Add to RSI service exchange selection
-4. Update configuration and documentation
+### Adding New Indicator/Signal
+1. Create calculator in `src/core/services/`
+2. Update RSI service to include new indicator
+3. Add to confluence analyzer if needed
+4. Update signal data builder
+5. Add tests for new functionality
 
-### Adding New RSI Endpoint
-1. Define schema in `src/api/schemas/`
-2. Add route in `src/api/routes/`
-3. Implement business logic in `src/core/services/`
-4. Add tests for new functionality
+### Modifying Worker Behavior
+1. Edit tasks in `src/tasks/monitor_tasks.py`
+2. Update Celery beat schedule in `src/tasks/celery_app.py`
+3. Test with: `docker-compose restart celery_worker celery_beat`
 
 
 ## Resource Limits

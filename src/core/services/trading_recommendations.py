@@ -22,7 +22,7 @@ class TradingRecommendations:
         current_price: float,
         confluence_details: Dict,
         timeframe: str = "15m",
-        market_context: Optional[Dict] = None
+        market_context: Optional[Dict] = None,
     ) -> Dict:
         """
         Calcula recomendações completas de trading
@@ -39,7 +39,9 @@ class TradingRecommendations:
             Dict com recomendações completas de trading
         """
         try:
-            logger.debug(f"Calculando recomendações para {signal_type.value} {signal_strength.value}")
+            logger.debug(
+                f"Calculando recomendações para {signal_type.value} {signal_strength.value}"
+            )
 
             # Obter dados dos indicadores
             ema_data = confluence_details.get("EMA", {})
@@ -75,13 +77,15 @@ class TradingRecommendations:
                 "entry_price": round(current_price, 6),
                 "stop_loss": round(stop_loss, 6) if stop_loss else None,
                 "take_profit": round(take_profit, 6) if take_profit else None,
-                "risk_reward_ratio": round(risk_reward_ratio, 2) if risk_reward_ratio else None,
+                "risk_reward_ratio": round(risk_reward_ratio, 2)
+                if risk_reward_ratio
+                else None,
                 "position_size_pct": position_size,
                 "signal_quality": signal_quality,
                 "timeframe": timeframe,
                 "strategy_notes": TradingRecommendations._generate_strategy_notes(
                     signal_type, signal_strength, timeframe, confluence_details
-                )
+                ),
             }
 
             logger.debug(f"Recomendações calculadas: {recommendations}")
@@ -97,7 +101,7 @@ class TradingRecommendations:
                 "position_size_pct": 1.0,
                 "signal_quality": "POOR",
                 "timeframe": timeframe,
-                "strategy_notes": "Erro no cálculo de recomendações"
+                "strategy_notes": "Erro no cálculo de recomendações",
             }
 
     @staticmethod
@@ -105,7 +109,7 @@ class TradingRecommendations:
         signal_type: SignalType,
         current_price: float,
         ema_data: Dict,
-        market_context: Dict
+        market_context: Dict,
     ) -> Optional[float]:
         """Calcula stop loss baseado em EMAs e volatilidade"""
         try:
@@ -160,7 +164,7 @@ class TradingRecommendations:
         signal_strength: SignalStrength,
         current_price: float,
         timeframe: str,
-        market_context: Dict
+        market_context: Dict,
     ) -> Optional[float]:
         """Calcula take profit baseado na força do sinal e timeframe"""
         try:
@@ -168,15 +172,15 @@ class TradingRecommendations:
             strength_multipliers = {
                 SignalStrength.WEAK: 1.0,
                 SignalStrength.MODERATE: 1.5,
-                SignalStrength.STRONG: 2.0
+                SignalStrength.STRONG: 2.0,
             }
 
             # Targets baseados no timeframe
             timeframe_targets = {
                 "15m": 2.0,  # 2% para scalping
-                "1h": 4.0,   # 4% para swing curto
-                "4h": 6.0,   # 6% para swing médio
-                "1d": 10.0   # 10% para posição
+                "1h": 4.0,  # 4% para swing curto
+                "4h": 6.0,  # 6% para swing médio
+                "1d": 10.0,  # 10% para posição
             }
 
             base_target = timeframe_targets.get(timeframe, 3.0)
@@ -208,7 +212,7 @@ class TradingRecommendations:
         signal_type: SignalType,
         current_price: float,
         stop_loss: Optional[float],
-        take_profit: Optional[float]
+        take_profit: Optional[float],
     ) -> Optional[float]:
         """Calcula ratio risco/retorno"""
         try:
@@ -235,15 +239,15 @@ class TradingRecommendations:
     def _suggest_position_size(
         signal_strength: SignalStrength,
         risk_reward_ratio: Optional[float],
-        market_context: Dict
+        market_context: Dict,
     ) -> float:
         """Sugere tamanho de posição como % do capital"""
         try:
             # Tamanho base por força do sinal
             base_sizes = {
-                SignalStrength.WEAK: 1.0,      # 1% do capital
+                SignalStrength.WEAK: 1.0,  # 1% do capital
                 SignalStrength.MODERATE: 2.0,  # 2% do capital
-                SignalStrength.STRONG: 3.0     # 3% do capital
+                SignalStrength.STRONG: 3.0,  # 3% do capital
             }
 
             base_size = base_sizes.get(signal_strength, 1.0)
@@ -273,7 +277,7 @@ class TradingRecommendations:
         signal_strength: SignalStrength,
         risk_reward_ratio: Optional[float],
         confluence_details: Dict,
-        market_context: Dict
+        market_context: Dict,
     ) -> str:
         """Avalia qualidade geral do sinal"""
         try:
@@ -283,7 +287,7 @@ class TradingRecommendations:
             strength_points = {
                 SignalStrength.WEAK: 1,
                 SignalStrength.MODERATE: 2,
-                SignalStrength.STRONG: 3
+                SignalStrength.STRONG: 3,
             }
             score += strength_points.get(signal_strength, 1)
 
@@ -298,7 +302,8 @@ class TradingRecommendations:
 
             # Pontos por confluência (quantos indicadores confirmam)
             confirming_indicators = sum(
-                1 for indicator, data in confluence_details.items()
+                1
+                for indicator, data in confluence_details.items()
                 if data.get("score", 0) > 0
             )
             score += min(2, confirming_indicators - 1)  # Máximo 2 pontos
@@ -322,7 +327,7 @@ class TradingRecommendations:
         signal_type: SignalType,
         signal_strength: SignalStrength,
         timeframe: str,
-        confluence_details: Dict
+        confluence_details: Dict,
     ) -> str:
         """Gera notas estratégicas sobre o sinal"""
         try:
@@ -341,7 +346,7 @@ class TradingRecommendations:
 
             notes_parts = [
                 f"Sinal de {action} {signal_strength.value.upper()} no timeframe {timeframe}.",
-                f"Confirmado por: {', '.join(confirming) if confirming else 'apenas RSI'}."
+                f"Confirmado por: {', '.join(confirming) if confirming else 'apenas RSI'}.",
             ]
 
             # Adicionar dicas por timeframe

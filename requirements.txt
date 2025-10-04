@@ -1,6 +1,4 @@
-# Core Framework
-fastapi==0.109.2
-uvicorn[standard]==0.27.1
+# Configuration & Models
 pydantic==2.6.1
 pydantic-settings==2.1.0
 
@@ -35,9 +33,7 @@ pytest-cov==4.1.0
 # Development Tools
 ruff==0.2.1
 
-# Crypto Trading
-ccxt==4.2.15
-gate-api==6.103.0
+# MEXC Integration (usando httpx diretamente - sem ccxt/gate-api)
 
 # Utilities
 python-dateutil==2.8.2

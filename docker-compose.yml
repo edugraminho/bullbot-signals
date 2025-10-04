@@ -1,24 +1,4 @@
 services:
-  app:
-    build: .
-    volumes:
-      - .:/app
-    ports:
-      - 8088:8000
-    depends_on:
-      - db
-      - redis
-    env_file:
-      - .env
-    networks:
-      - bullbot_network
-    deploy:
-      resources:
-        limits:
-          memory: 250M
-        reservations:
-          memory: 128M
-
   db:
     image: postgres:17.1-alpine
     env_file:

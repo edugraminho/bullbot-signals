@@ -20,7 +20,7 @@ class SignalDataBuilder:
         confluence_result: ConfluenceResult,
         market_data_24h: Optional[Dict] = None,
         market_context: Optional[Dict] = None,
-        trading_recommendations: Optional[Dict] = None
+        trading_recommendations: Optional[Dict] = None,
     ) -> Dict:
         """
         Constrói estrutura completa de dados do sinal
@@ -40,12 +40,20 @@ class SignalDataBuilder:
             # Dados básicos do sinal
             signal_data = {
                 "signal_info": {
-                    "type": confluence_result.signal.signal_type.value if confluence_result.signal else None,
-                    "strength": confluence_result.signal.strength.value if confluence_result.signal else None,
-                    "message": confluence_result.signal.message if confluence_result.signal else None,
+                    "type": confluence_result.signal.signal_type.value
+                    if confluence_result.signal
+                    else None,
+                    "strength": confluence_result.signal.strength.value
+                    if confluence_result.signal
+                    else None,
+                    "message": confluence_result.signal.message
+                    if confluence_result.signal
+                    else None,
                     "recommendation": confluence_result.recommendation,
                     "risk_level": confluence_result.risk_level,
-                    "timestamp": confluence_result.signal.timestamp.isoformat() if confluence_result.signal else datetime.now(timezone.utc).isoformat()
+                    "timestamp": confluence_result.signal.timestamp.isoformat()
+                    if confluence_result.signal
+                    else datetime.now(timezone.utc).isoformat(),
                 }
             }
 
@@ -65,15 +73,15 @@ class SignalDataBuilder:
                     "ask_price": market_data_24h.get("ask_price"),
                     "spread_pct": SignalDataBuilder._calculate_spread_pct(
                         market_data_24h.get("bid_price"),
-                        market_data_24h.get("ask_price")
+                        market_data_24h.get("ask_price"),
                     ),
                     "trades_count_24h": market_data_24h.get("count"),
-                    "source": market_data_24h.get("source", "mexc")
+                    "source": market_data_24h.get("source", "mexc"),
                 }
             else:
                 signal_data["market_data"] = {
                     "current_price": confluence_result.current_price,
-                    "source": "confluence_result"
+                    "source": "confluence_result",
                 }
 
             # Análise de confluência detalhada
@@ -81,16 +89,25 @@ class SignalDataBuilder:
                 "total_score": confluence_result.confluence_score.total_score,
                 "max_possible_score": confluence_result.confluence_score.max_possible_score,
                 "score_percentage": round(
-                    (confluence_result.confluence_score.total_score / confluence_result.confluence_score.max_possible_score) * 100, 1
-                ) if confluence_result.confluence_score.max_possible_score > 0 else 0,
+                    (
+                        confluence_result.confluence_score.total_score
+                        / confluence_result.confluence_score.max_possible_score
+                    )
+                    * 100,
+                    1,
+                )
+                if confluence_result.confluence_score.max_possible_score > 0
+                else 0,
                 "signal_strength": confluence_result.confluence_score.signal_strength.value,
                 "is_valid_signal": confluence_result.confluence_score.is_valid_signal,
-                "breakdown_by_indicator": confluence_result.confluence_score.details
+                "breakdown_by_indicator": confluence_result.confluence_score.details,
             }
 
             # Indicadores técnicos individuais estruturados
-            signal_data["technical_indicators"] = SignalDataBuilder._structure_technical_indicators(
-                confluence_result.confluence_score.details
+            signal_data["technical_indicators"] = (
+                SignalDataBuilder._structure_technical_indicators(
+                    confluence_result.confluence_score.details
+                )
             )
 
             # Contexto de mercado adicional
@@ -103,7 +120,7 @@ class SignalDataBuilder:
                     "volume_ratio": market_context.get("volume_ratio"),
                     "is_high_volatility": market_context.get("is_high_volatility"),
                     "is_expanding_range": market_context.get("is_expanding_range"),
-                    "avg_volume_10_periods": market_context.get("avg_volume_10")
+                    "avg_volume_10_periods": market_context.get("avg_volume_10"),
                 }
 
             # Recomendações de trading
@@ -114,10 +131,12 @@ class SignalDataBuilder:
             signal_data["metadata"] = {
                 "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
                 "data_structure_version": "2.0",
-                "components_included": list(signal_data.keys())
+                "components_included": list(signal_data.keys()),
             }
 
-            logger.debug(f"Dados estruturados construídos com {len(signal_data)} seções")
+            logger.debug(
+                f"Dados estruturados construídos com {len(signal_data)} seções"
+            )
             return signal_data
 
         except Exception as e:
@@ -125,14 +144,16 @@ class SignalDataBuilder:
             # Fallback mínimo
             return {
                 "signal_info": {
-                    "type": confluence_result.signal.signal_type.value if confluence_result.signal else None,
+                    "type": confluence_result.signal.signal_type.value
+                    if confluence_result.signal
+                    else None,
                     "recommendation": confluence_result.recommendation,
-                    "error": f"Erro na construção dos dados: {str(e)}"
+                    "error": f"Erro na construção dos dados: {str(e)}",
                 },
                 "confluence_analysis": {
                     "total_score": confluence_result.confluence_score.total_score,
-                    "max_possible_score": confluence_result.confluence_score.max_possible_score
-                }
+                    "max_possible_score": confluence_result.confluence_score.max_possible_score,
+                },
             }
 
     @staticmethod
@@ -150,7 +171,7 @@ class SignalDataBuilder:
                     "levels": rsi_data.get("levels", {}),
                     "zone": rsi_data.get("levels", {}).get("current_zone", "unknown"),
                     "interpretation": rsi_data.get("reason"),
-                    "is_contributing": rsi_data.get("score", 0) > 0
+                    "is_contributing": rsi_data.get("score", 0) > 0,
                 }
 
             # EMA
@@ -164,13 +185,15 @@ class SignalDataBuilder:
                     "values": {
                         "ema_9": ema_values.get("ema_9"),
                         "ema_21": ema_values.get("ema_21"),
-                        "ema_50": ema_values.get("ema_50")
+                        "ema_50": ema_values.get("ema_50"),
                     },
                     "price_position": {
                         "above_ema_50": ema_values.get("price_above_ema_50"),
-                        "trend_alignment": "bullish" if ema_data.get("trending_up") else "bearish"
+                        "trend_alignment": "bullish"
+                        if ema_data.get("trending_up")
+                        else "bearish",
                     },
-                    "is_contributing": ema_data.get("score", 0) > 0
+                    "is_contributing": ema_data.get("score", 0) > 0,
                 }
 
             # MACD
@@ -184,11 +207,13 @@ class SignalDataBuilder:
                     "values": {
                         "macd_line": macd_values.get("macd_line"),
                         "signal_line": macd_values.get("signal_line"),
-                        "histogram": macd_values.get("histogram")
+                        "histogram": macd_values.get("histogram"),
                     },
                     "crossover_type": macd_values.get("crossover"),
-                    "momentum_strength": SignalDataBuilder._assess_macd_strength(macd_values),
-                    "is_contributing": macd_data.get("score", 0) > 0
+                    "momentum_strength": SignalDataBuilder._assess_macd_strength(
+                        macd_values
+                    ),
+                    "is_contributing": macd_data.get("score", 0) > 0,
                 }
 
             # Volume
@@ -204,11 +229,13 @@ class SignalDataBuilder:
                         "volume_ratio": volume_values.get("volume_ratio"),
                         "volume_threshold": volume_values.get("volume_threshold"),
                         "obv": volume_values.get("obv"),
-                        "vwap": volume_values.get("vwap")
+                        "vwap": volume_values.get("vwap"),
                     },
                     "price_vs_vwap": volume_values.get("price_vs_vwap"),
-                    "volume_quality": SignalDataBuilder._assess_volume_quality(volume_data),
-                    "is_contributing": volume_data.get("score", 0) > 0
+                    "volume_quality": SignalDataBuilder._assess_volume_quality(
+                        volume_data
+                    ),
+                    "is_contributing": volume_data.get("score", 0) > 0,
                 }
 
             return structured
@@ -218,7 +245,9 @@ class SignalDataBuilder:
             return {}
 
     @staticmethod
-    def _calculate_spread_pct(bid_price: Optional[float], ask_price: Optional[float]) -> Optional[float]:
+    def _calculate_spread_pct(
+        bid_price: Optional[float], ask_price: Optional[float]
+    ) -> Optional[float]:
         """Calcula spread em % entre bid e ask"""
         try:
             if not bid_price or not ask_price or bid_price <= 0:
